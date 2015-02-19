@@ -106,6 +106,7 @@ for (tt in start_time:end_time){
     
   }else{
        
+    #check if there are any susceptible trees left on the landscape (IF NOT continue LOOP till the end)
     if(!any(susceptible > 0)){
       breakpoints <- c(0, 0.25, 0.5, 0.75, 1)
       colors <- c("yellow","gold","orange","red")
