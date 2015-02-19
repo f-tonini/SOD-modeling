@@ -640,10 +640,11 @@ dispFunction <- function(bkgr, S, I, dst, type=c('Cauchy','Cauchy Mixture','Gaus
         spores_disp <- round(bkgr[row,col] * Wt)
         
         #loop thru values of infected and susceptibles falling within 2D kernel
+        #skip cell IF THERE ARE NO susceptibles & dispersed spores found in it!
         for(i in (row-hw_row):(row+hw_row)){
           for(j in (col-hw_col):(col+hw_col)){
                       
-            if(!is.na(S[i,j]) & S[i,j] > 0 & spores_disp[i,j] > 0){  #LOOP OVER EACH CELL WITHIN 2D KERNEL (SKIP CELL IF THERE ARE NO Susceptibles & spores PRESENT IN IT)
+            if(!is.na(S[i,j]) & S[i,j] > 0 & spores_disp[i-(row-hw_row) + 1,j-(col-hw_col) + 1] > 0){  
               currentPropS <- round(S[i,j] / (S[i,j] + I[i,j]), 2)
               for(spNbr in 1:spores_disp[i-(row-hw_row) + 1,j-(col-hw_col) + 1]){
                 U <- runif(1)
