@@ -26,7 +26,7 @@ dir.create(fOutput, showWarnings = FALSE)
 
 ##Use an external source file w/ all modules (functions) used within this script. 
 ##Use FULL PATH if source file is not in the same folder w/ this script
-source('./scripts/myfunctions_SOD.R')
+source('./scripts/myfunctions_SOD.r')
 
 ##Load all required libraries
 print('Loading required libraries...')
