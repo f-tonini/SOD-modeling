@@ -9,12 +9,12 @@
 # Software:     Tested successfully using R version 3.0.2 (http://www.r-project.org/)
 #-----------------------------------------------------------------------------------------------------------------------
 
-#set.seed(2000)
+set.seed(2000)
 
 ##Define the main working directory
 ##Make sure to specify the appropriate path using either / or \\ to specify the path 
 #setwd("path_to_desired_folder")
-setwd("D:/SOD Simulation")
+setwd("D:/TangibleLandscape")
 
 #Path to folders in which you want to save all your vector & raster files
 fOutput <- 'output'
@@ -25,7 +25,7 @@ dir.create(fOutput, showWarnings = FALSE)
 
 ##Use an external source file w/ all modules (functions) used within this script. 
 ##Use FULL PATH if source file is not in the same folder w/ this script
-source('./scripts/myfunctions_SOD.R')
+source('./scripts/myfunctions_SOD.r')
 
 ##Load all required libraries
 print('Loading required libraries...')
