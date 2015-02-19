@@ -587,15 +587,15 @@ kernel2DToDistance <- function(x, r){
 }
 
 
-dispFunction <- function(bkgr, S, I, kernel, type=c('Cauchy','Cauchy Mixture','Gauss',"Exponential"), AOI=NULL, c=NULL, scale=NULL, gamma=NULL, sd=NULL, rate=NULL){
+dispFunction <- function(bkgr, S, I, dst, type=c('Cauchy','Cauchy Mixture','Gauss',"Exponential"), AOI=NULL, c=NULL, scale=NULL, gamma=NULL, sd=NULL, rate=NULL){
   
   
   out <- list()
   
   type <- match.arg(type)
   
-  hw_col <- floor(ncol(kernel)/2)
-  hw_row <- floor(nrow(kernel)/2)
+  hw_col <- floor(ncol(dst)/2)
+  hw_row <- floor(nrow(dst)/2)
   
   if(is.null(c)) stop('c must be specified in the dispersal function!')
   if(c != 2 & c > 1) stop('c must be either <= 1 or = 2')  
@@ -607,42 +607,11 @@ dispFunction <- function(bkgr, S, I, kernel, type=c('Cauchy','Cauchy Mixture','G
       
       if(!is.na(bkgr[row,col]) & bkgr[row,col] > 0) {
         
-        
-        #************************************************
-        #WIND DISPERSAL (average of weights must be = 1)
-        #************************************************
-        
-        #read wind strength from file OR keep it constant at each time step
-        WindStrgth <- as.matrix(WindStrgth)
-        
-        #if you have an external file with wind directions then use
-        #WindDir <- raster(...)
-        #WindDir <- rvm(1, pi, k=4)  #sample from Von Mises (mean=180 degrees, kappa=determines how much standard dev.)
-        WindDir <- runif(1, -pi, pi) #Von Mises when k=0 becomes uniform distribution
-        
-        if(is.null(WindDir) | WindStrgth[row, col] == 0) next
-        
-        #MOVE THIS CHUNK OUTSIDE THIS FUNCTION AND BEFORE STARTING LOOPS
-        rs <- res(AOI)
-        xr <- (ncol(kernel) * rs[1]) / 2
-        yr <- (nrow(kernel) * rs[2]) / 2 
-        rast <- raster(kernel, xmn=-xr[1], xmx=xr[1], ymn=-yr[1], ymx=yr[1], crs='+proj=utm +zone=1')
-        
-        #WIND BEARING FROM SOURCE CELL TO OTHER CELLS WITHIN 2DKERNEL
-        CellDir <- direction(rast, from=TRUE)
-        
-        #equation from: http://www.mssanz.org.au/MODSIM07/papers/21_s46/AnIntigratedLand_s46_Fox_.pdf
-        expr <- (1 - cos(as.matrix(CellDir) - WindDir)) / 2
-        WindWt <- WindStrgth[row, col] ^ ((1-expr^0.75) - 0.5)
-        
-        #the central cell in CellDir has a value NA, thus we need to replace it inside WindWt before multiplying kernelWt and WindWt
-        WindWt[ceiling(nrow(kernel)/2), ceiling(ncol(kernel)/2)] <- 1
-        
- 
         #************************
         #RADIAL DISPERSAL
         #************************
         
+        #sample a value for alpha using a radial dispersal pdf (this step is necessary to add stochasticity)
         if(type == 'Cauchy'){
           if(c > 1) stop('for type == Cauchy the value of c must be < 1')
           #sample alpha from chosen distribution of interest
@@ -661,26 +630,22 @@ dispFunction <- function(bkgr, S, I, kernel, type=c('Cauchy','Cauchy Mixture','G
           alpha <- rexp(1, rate=1/rate) 
         }
         
-
-        kernelWt <- ( c / 2 * alpha * gamma(1/c) ) * exp( -abs(dist/alpha)^c  )  ##CHECK IF THIS NEEDS TO BE CONVERTED INTO ANOTHER LOOP IN C++
+        #now we can calculate the kernel weights using the value of alpha and set of distances from central source cell
+        kernelWt <- ( c / 2 * alpha * gamma(1/c) ) * exp( -abs(dst/alpha)^c  )  ##CHECK IF THIS NEEDS TO BE CONVERTED INTO ANOTHER LOOP IN C++
         
-        # sum of weights should add up to 1
-        #kernelWt <- kernelWt/sum(kernelWt)
-        
-        
-        Wt <- (kernelWt * WindWt * TerrWt)/sum(kernelWt * WindWt * TerrWt, na.rm=T)
-        
+        #sum of weights should add up to 1
+        Wt <- kernelWt/sum(kernelWt)
+         
         #MULTIPLY THE SPORES IN THE SOURCE CELL BY EACH VALUE IN DISP KERNEL
-        spores.disp <- round(bkgr[row,col] * Wt)
+        spores_disp <- round(bkgr[row,col] * Wt)
         
         #loop thru values of infected and susceptibles falling within 2D kernel
         for(i in (row-hw_row):(row+hw_row)){
           for(j in (col-hw_col):(col+hw_col)){
-          
-            
-            if(!is.na(S[i,j]) & S[i,j] > 0 & spores.disp[i,j] > 0){  #LOOP OVER EACH CELL WITHIN 2D KERNEL (SKIP CELL IF THERE ARE NO Susceptibles & spores PRESENT IN IT)
+                      
+            if(!is.na(S[i,j]) & S[i,j] > 0 & spores_disp[i,j] > 0){  #LOOP OVER EACH CELL WITHIN 2D KERNEL (SKIP CELL IF THERE ARE NO Susceptibles & spores PRESENT IN IT)
               currentPropS <- round(S[i,j] / (S[i,j] + I[i,j]), 2)
-              for(spNbr in 1:spores.disp[i-(row-hw_row) + 1,j-(col-hw_col) + 1]){
+              for(spNbr in 1:spores_disp[i-(row-hw_row) + 1,j-(col-hw_col) + 1]){
                 U <- runif(1)
                 if (U < currentPropS){
                   I[i,j] <- I[i,j] + 1 
