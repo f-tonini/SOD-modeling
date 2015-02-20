@@ -322,7 +322,8 @@ radialDisp <- function(xyAOIPos, AOI_owin){
 }
 
 
-SporeDisp <- function(x, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 'Gauss'), mean = NULL, sd = NULL, scale = NULL, gamma=NULL, wtype=c('Uniform', 'VM'), wdir=c('N','NE','E','SE','S','SW','W','NW'), kappa=2){
+SporeDisp <- function(x, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 'Gauss'), mean = NULL, sd = NULL, scale = NULL, gamma=NULL, 
+                      wtype=c('Uniform', 'VM'), wdir=c('N','NE','E','SE','S','SW','W','NW'), kappa=NULL){
   
   out <- list()
   
@@ -363,7 +364,7 @@ SporeDisp <- function(x, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 
           if (wtype=='Uniform'){
             theta <- runif(1, -pi, pi)
           }else if(wtype=='VM'){
-            if(kappa <= 0) stop('kappa must be greater than zero!')
+            if(is.null(kappa) | kappa <= 0) stop('kappa must be greater than zero!')
             #Check predominant windDir
             if(wdir == 'N') {
               theta <- rvm(1, mean = 0 * (pi/180), kappa)  #kappa=concentration
@@ -418,7 +419,8 @@ SporeDisp <- function(x, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 
 }
 
 
-SporeDisp2 <- function(x, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 'Gauss'), mean = NULL, sd = NULL, scale = NULL, gamma=NULL, wtype=c('Uniform', 'VM'), wdir=c('N','NE','E','SE','S','SW','W','NW'), kappa=2){
+SporeDisp2 <- function(x, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 'Gauss'), mean = NULL, sd = NULL, scale = NULL, gamma=NULL, 
+                       wtype=c('Uniform', 'VM'), wdir=c('N','NE','E','SE','S','SW','W','NW'), kappa=NULL){
   
   out <- list()
   
@@ -457,7 +459,7 @@ SporeDisp2 <- function(x, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential',
         if (wtype=='Uniform'){
           theta <- runif(x[row,col], -pi, pi)
         }else if(wtype=='VM'){
-          if(kappa <= 0) stop('kappa must be greater than zero!')
+          if(is.null(kappa) | kappa <= 0) stop('kappa must be greater than zero!')
           #Check predominant windDir
           if(wdir == 'N') {
             theta <- rvm(x[row,col], mean = 0 * (pi/180), kappa)  #kappa=concentration
@@ -587,10 +589,7 @@ kernel2DToDistance <- function(x, r){
 }
 
 
-dispFunction <- function(bkgr, S, I, dst, type=c('Cauchy','Cauchy Mixture','Gauss',"Exponential"), AOI=NULL, c=NULL, scale=NULL, gamma=NULL, sd=NULL, rate=NULL){
-  
-  
-  out <- list()
+dispFunction <- function(bkgr, dst, type=c('Cauchy','Cauchy Mixture','Gauss',"Exponential"), c=NULL, scale=NULL, gamma=NULL, sd=NULL, rate=NULL){
   
   type <- match.arg(type)
   
@@ -637,38 +636,47 @@ dispFunction <- function(bkgr, S, I, dst, type=c('Cauchy','Cauchy Mixture','Gaus
         Wt <- kernelWt/sum(kernelWt)
          
         #MULTIPLY THE SPORES IN THE SOURCE CELL BY EACH VALUE IN DISP KERNEL
-        spores_disp <- round(bkgr[row,col] * Wt)
+        #spores_disp <- round(bkgr[row,col] * Wt)
+        spores_disp <- bkgr[row,col] * Wt
         
-        #loop thru values of infected and susceptibles falling within 2D kernel
-        #skip cell IF THERE ARE NO susceptibles & dispersed spores found in it!
-        for(i in (row-hw_row):(row+hw_row)){
-          for(j in (col-hw_col):(col+hw_col)){
-                      
-            if(!is.na(S[i,j]) & S[i,j] > 0 & spores_disp[i-(row-hw_row) + 1,j-(col-hw_col) + 1] > 0){  
-              currentPropS <- round(S[i,j] / (S[i,j] + I[i,j]), 2)
-              for(spNbr in 1:spores_disp[i-(row-hw_row) + 1,j-(col-hw_col) + 1]){
-                U <- runif(1)
-                if (U < currentPropS){
-                  I[i,j] <- I[i,j] + 1 
-                  S[i,j] <- S[i,j] - 1
-                  currentPropS <- round( S[i,j] / (S[i,j] + I[i,j]), 2)
-                } 
-              } #END LOOP OVER EACH SPORE DISPERSED IN CELL i,j wITHIN 2D KERNEL             
-            } #ENF IF
-            
-          } #END LOOP OVER EACH CELL FALLING WITHIN 2D KERNEL        
-        }
+        bkgr[(row-hw_row):(row+hw_row), (col-hw_col):(col+hw_col)] <- bkgr[(row-hw_row):(row+hw_row), (col-hw_col):(col+hw_col)] + spores_disp
         
       } #END IF   
       
     }  
   } #END LOOP OVER EACH CELL INSIDE STUDY BUFFERED STUDY AREA
   
-  out$S <- S
-  out$I <- I
-  return(out)
+  return(round(bkgr))
 }
 
 
-
+infectFun <- function(bkgr, S, I){
+  
+  out <- list()
+  
+  #LOOP OVER EACH CELL OF STUDY AREA AND FOR EACH NON-ZERO SPORE CELL (dispersed spores) RUN THE PROBABILISTIC 
+  #LOOP TO SEE HOW MANY SPORES TURN INTO AN INFECTION
+  for(row in 1:nrow(bkgr)){
+    for(col in 1:ncol(bkgr)){
+      
+      if(!is.na(S[row,col]) & S[row,col] > 0 & bkgr[row,col] > 0){  
+        currentPropS <- round(S[row,col] / (S[row,col] + I[row,col]), 2)
+        for(spNbr in 1:bkgr[row,col]){
+          U <- runif(1)
+          if (U < currentPropS){
+            I[row,col] <- I[row,col] + 1 
+            S[row,col] <- S[row,col] - 1
+            currentPropS <- round( S[row,col] / (S[row,col] + I[row,col]), 2)
+          } 
+        } #END LOOP OVER EACH SPORE IN CELL [row,col]            
+      } #ENF IF
+      
+    }
+  }
+  
+  out$S <- S
+  out$I <- I
+  return(out)
+  
+}
 
