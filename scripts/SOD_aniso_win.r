@@ -67,7 +67,7 @@ I_lst[inf_idx] <- sapply(Nmax[inf_idx], FUN=function(x) sample(1:x, size=1))
 S_lst <- Nmax - I_lst   #integer vector
 
 #max cut-off distance for the 'moving window'
-d <- 500 #meters or units of analysis
+d <- 5000 #meters or units of analysis
 
 kernelWin <- kernel2D(Nmax_rast, d) #d = meters or units of analysis
 dstMat <- kernel2DToDistance(kernelWin, Nmax_rast)
@@ -121,7 +121,6 @@ for (tt in start_time:end_time){
       next 
     }
     
-    
     #Within each infected cell (I > 0) draw random number of infections ~Poisson(lambda=rate of spore production) for each infected host. 
     #Take SUM for total infections produced by each cell.
     
@@ -132,14 +131,20 @@ for (tt in start_time:end_time){
     spores[(1 + floor(nrow(kernelWin)/2)):(nrow(spores)-floor(nrow(kernelWin)/2)),  
            (1 + floor(ncol(kernelWin)/2)):(ncol(spores)-floor(ncol(kernelWin)/2))] <- matrix(spores_lst, ncol=ncol(Nmax_rast), byrow=T)
     
+    #disperse spores over landscape
     #c <- 0.8 (c <= 1 fat-tailed kernel)
-    out <- dispFunction(bkgr = spores, S = susceptible, I = infected, dst = dstMat, type='Cauchy', c=0.5, scale=20.57) #change this function to C++
+    spores <- dispFunction(bkgr = spores, dst = dstMat, type='Cauchy', c=0.5, scale=20.57) #change this function to C++
+    
+    out <- infectFun(bkgr = spores, S = susceptible, I = infected)
     
     susceptible <- out$S
     infected <- out$I
     
     I_rast[] <- infected[(1 + floor(nrow(kernelWin)/2)):(nrow(infected)-floor(nrow(kernelWin)/2)), (1 + floor(ncol(kernelWin)/2)):(ncol(infected)-floor(ncol(kernelWin)/2))]
     I_lst <- I_rast[]
+    
+    #wipe out spores vector to use in following time steps
+    spores_lst <- rep(0, length(Nmax))  #integer
     
     ##CALCULATE OUTPUT TO PLOT:
     # 1) values as % infected
