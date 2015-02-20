@@ -129,10 +129,10 @@ for (tt in start_time:end_time){
     #SPORE DISPERSAL:
     #(SporeDisp2 seems faster in R alone!!)
     
-    #out <- SporeDisp(spores_mat, res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')  #C++ functions to CONVERT
-    #out <- SporeDisp(spores_mat, res_win, rtype='Cauchy', scale=20.57, wtype='VM', wdir='N', kappa=2)  #C++ functions to CONVERT
-    #out <- SporeDisp2(spores_mat, res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')  #C++ functions to CONVERT
-    out <- SporeDisp2(spores_mat, res_win, rtype='Cauchy', scale=20.57, wtype='VM', wdir='N', kappa=2)  #C++ functions to CONVERT
+    #out <- SporeDisp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')  #C++ functions to CONVERT
+    #out <- SporeDisp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='VM', wdir='N', kappa=2)  #C++ functions to CONVERT
+    #out <- SporeDisp2(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')  #C++ functions to CONVERT
+    out <- SporeDisp2(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='VM', wdir='N', kappa=2)  #C++ functions to CONVERT
     
     susceptible <- out$S 
     infected <- out$I  

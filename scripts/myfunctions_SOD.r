@@ -322,7 +322,7 @@ radialDisp <- function(xyAOIPos, AOI_owin){
 }
 
 
-SporeDisp <- function(x, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 'Gauss'), mean = NULL, sd = NULL, scale = NULL, gamma=NULL, 
+SporeDisp <- function(x, S, I, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 'Gauss'), mean = NULL, sd = NULL, scale = NULL, gamma=NULL, 
                       wtype=c('Uniform', 'VM'), wdir=c('N','NE','E','SE','S','SW','W','NW'), kappa=NULL){
   
   out <- list()
@@ -391,13 +391,12 @@ SporeDisp <- function(x, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 
           if (row0 < 1 | row0 > nrow(x)) next     ## outside the region ##
           if (col0 < 1 | col0 > ncol(x)) next     ## outside the region ##
           
-          if(susceptible[row0, col0] > 0){  
-            currentPropS <- round(susceptible[row0, col0] / (susceptible[row0, col0] + infected[row0, col0]), 2)
+          if(S[row0, col0] > 0){  
+            currentPropS <- round(S[row0, col0] / (S[row0, col0] + I[row0, col0]), 2)
             U <- runif(1)
             if (U < currentPropS){
-              infected[row0, col0] <- infected[row0, col0] + 1 
-              susceptible[row0, col0] <- susceptible[row0, col0] - 1
-              #currentPropS <- round( susceptible[row0, col0] / (susceptible[row0, col0] + infected[row0, col0]), 2)
+              I[row0, col0] <- I[row0, col0] + 1 
+              S[row0, col0] <- S[row0, col0] - 1
             } 
           }#ENF IF
           
@@ -408,15 +407,15 @@ SporeDisp <- function(x, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 
     }    
   }#END LOOP OVER ALL CELLS
   
-  out$I <- infected 
-  out$S <- susceptible
+  out$I <- I 
+  out$S <- S
   
   return(out) 
   
 }
 
 
-SporeDisp2 <- function(x, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 'Gauss'), mean = NULL, sd = NULL, scale = NULL, gamma=NULL, 
+SporeDisp2 <- function(x, S, I, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 'Gauss'), mean = NULL, sd = NULL, scale = NULL, gamma=NULL, 
                        wtype=c('Uniform', 'VM'), wdir=c('N','NE','E','SE','S','SW','W','NW'), kappa=NULL){
   
   out <- list()
@@ -490,12 +489,12 @@ SporeDisp2 <- function(x, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential',
         
         ##LOOP THROUGH ROW0 and COL0 TO ADD DISPERSED SPORES
         for(i in 1:length(row0)){
-          if(susceptible[row0[i], col0[i]] > 0){
-            currentPropS <- round(susceptible[row0[i], col0[i]] / (susceptible[row0[i], col0[i]] + infected[row0[i], col0[i]]), 2)
+          if(S[row0[i], col0[i]] > 0){
+            currentPropS <- round(S[row0[i], col0[i]] / (S[row0[i], col0[i]] + I[row0[i], col0[i]]), 2)
             U <- runif(1)
             if (U < currentPropS){
-              infected[row0[i], col0[i]] <- infected[row0[i], col0[i]] + 1 
-              susceptible[row0[i], col0[i]] <- susceptible[row0[i], col0[i]] - 1
+              I[row0[i], col0[i]] <- I[row0[i], col0[i]] + 1 
+              S[row0[i], col0[i]] <- S[row0[i], col0[i]] - 1
             }#ENF IF 
           }#ENF IF          
         }#END LOOP OVER DISP SPORES FROM CURRENT SOURCE CELL
@@ -505,8 +504,8 @@ SporeDisp2 <- function(x, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential',
     }    
   }#END LOOP OVER ALL CELLS
   
-  out$I <- infected 
-  out$S <- susceptible
+  out$I <- I
+  out$S <- S
   
   return(out) 
   
