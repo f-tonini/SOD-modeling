@@ -330,9 +330,6 @@ SporeDisp <- function(x, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 
   rtype <- match.arg(rtype) #radial distribution type
   wtype <- match.arg(wtype) #wind distribution type
   
-  #initialize matrix with zeros for dispersed spores
-  spore_disp <- matrix(0, nrow(x), ncol(x))
-  
   #LOOP THROUGH EACH CELL of the input matrix 'x' (this should be the study area)
   for(row in 1:nrow(x)){
     
@@ -426,10 +423,7 @@ SporeDisp2 <- function(x, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential',
   
   rtype <- match.arg(rtype) #radial distribution type
   wtype <- match.arg(wtype) #wind distribution type
-  
-  #initialize matrix with zeros for dispersed spores
-  spore_disp <- matrix(0, nrow(x), ncol(x))
-  
+    
   #LOOP THROUGH EACH CELL of the input matrix 'x' (this should be the study area)
   for(row in 1:nrow(x)){
     
