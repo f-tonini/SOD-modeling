@@ -34,8 +34,12 @@ load.packages()
 
 
 ###Input simulation parameters:
-start_time <- 1
-end_time <- 12
+start <- 2004
+end <- 2006
+months <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+months_msk <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep")
+tstep <- sapply(months, FUN=function(x) paste(x,start:end,sep=''))
+tstep <- c(t(s))
 
 ##read initial raster (host index) with counts of max available "Susceptible" trees per cell
 ##counts are integers [0, 100]
@@ -76,11 +80,12 @@ infected <- matrix(I_lst, ncol=ncol(Nmax_rast), nrow=nrow(Nmax_rast), byrow=T)
 
 
 ##LOOP for each month (or whatever chosen time unit)
-for (tt in start_time:end_time){
+for (tt in tstep){
   
-  print(paste('Time', tt))
+  if (!any(substr(tt,1,3) %in% months_msk)) next
+  print(tt)
   
-  if (tt == start_time) {
+  if (tt == tstep[1]) {
     
     if(!any(S_lst > 0)) stop('Simulation ended. There are no more susceptible trees on the landscape!')
     
@@ -97,7 +102,7 @@ for (tt in start_time:end_time){
     
     breakpoints <- c(0, 0.25, 0.5, 0.75, 1)
     colors <- c("yellow","gold","orange","red")
-    plot(I_rast, breaks=breakpoints, col=colors, main=paste("Time ", tt, sep=''))
+    plot(I_rast, breaks=breakpoints, col=colors, main=tt)
     
     #WRITE TO FILE:
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
@@ -110,7 +115,7 @@ for (tt in start_time:end_time){
     if(!any(susceptible > 0)){
       breakpoints <- c(0, 0.25, 0.5, 0.75, 1)
       colors <- c("yellow","gold","orange","red")
-      plot(I_rast, breaks=breakpoints, col=colors, main=paste("Time ", tt, sep=''))
+      plot(I_rast, breaks=breakpoints, col=colors, main=tt)
       #WRITE TO FILE:
       #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
       #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='INT1U', overwrite=TRUE) # nbr. infected hosts as output
@@ -156,7 +161,7 @@ for (tt in start_time:end_time){
     
     breakpoints <- c(0, 0.25, 0.5, 0.75, 1)
     colors <- c("yellow","gold","orange","red")
-    plot(I_rast, breaks=breakpoints, col=colors, main=paste("Time ", tt, sep=''))
+    plot(I_rast, breaks=breakpoints, col=colors, main=tt)
     
     #WRITE TO FILE:
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
