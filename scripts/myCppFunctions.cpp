@@ -1,7 +1,4 @@
-// [[Rcpp::depends(RcppArmadillo)]]
-
-// the following header also include Rcpp and Armadillo headers
-#include <RcppArmadilloExtensions/sample.h>
+#include <Rcpp.h>
 using namespace Rcpp;
 
 // Below is a simple example of exporting a C++ function to R. You can
@@ -11,58 +8,106 @@ using namespace Rcpp;
 // For more on using Rcpp click the Help button on the editor toolbar
 
 // [[Rcpp::export]]
-SEXP SporeDisp(SEXP SPORES, SEXP SUSC, SEXP INF, String type, float res_win, float mean=NA_REAL, float sd=NA_REAL, float scale1=NA_REAL, float scale2=NA_REAL, float gamma=NA_REAL){
+List SporeDisp(NumericMatrix x, NumericMatrix S, NumericMatrix I, float rs, String rtype, float mean=NA_REAL, float sd=NA_REAL, float scale1=NA_REAL, float scale2=NA_REAL, float gamma=NA_REAL,
+                String wtype, String wdir, kappa=NA_REAL){
 
-  // input parameters //
-  IntegerMatrix spores (SPORES);
-  IntegerMatrix S (SUSC);
-  IntegerMatrix I (INF);
-  
+
   // internal variables //
-  IntegerMatrix sporedisp = clone<IntegerMatrix>(spores);
-  
-  int nrow = sporedisp.nrow(); 
-  int ncol = sporedisp.ncol();
+  int nrow = x.nrow(); 
+  int ncol = x.ncol();
   int dist;
   int row0;
   int col0;
-  
+          
   float theta;
   float PropS;
   
-  RNGScope scope;
+  Function rcauchy("rcauchy");
+  Function rexp("rexp");
+  Function rnorm("rnorm");
+  Function runif("runif");
+  Function rvm("rvm");
+  Function sample("sample");
   
+  //RNGScope scope;
+  
+  //LOOP THROUGH EACH CELL of the input matrix 'x' (this should be the study area)
   for (int row = 0; row < nrow; row++) {
     for (int col = 0; col < ncol; col++){
       
-      if(spores(row,col) > 0){
+      if(x(row,col) > 0){  //if spores in cell (row,col) > 0, disperse
         
-        for(int sp = 1; (sp = spores(row,col)); sp++){
+        for(int sp = 1; (sp = x(row,col)); sp++){
           
-          if (type == "Cauchy"){
-            dist = abs(R::rcauchy(0, scale1));
-          }else if (type =='Cauchy Mixture'){
-            if( is_na(scale1) || is_na(scale2) ) stop('The parameter scale must have two values, one for each component of the mixture!');
-            if (is_na(gamma)) stop('The parameter gamma has to be specified when using a mixture Cauchy pdf!');
-            if (gamma >= 1 | gamma <= 0) stop('The parameter gamma must range between (0-1)');
-            NumericVector x = NumericVector::create(1,2);
-            NumericVector prob = NumericVector::create(gamma,1-gamma);
-            int size = 1;           
-            int f = RcppArmadillo::sample(x, size=size, prob=prob);
-            if(f == 1) dist <- abs(rcauchy(1, scale = scale[1])) else dist <- abs(rcauchy(1, scale = scale[2])) 
-          }else if (type =='Exponential'){
-            if (is.null(mean)) stop('The parameter mean must be specified when using an Exponential pdf!')
-            dist = abs(R::rexp(0, 1/mean));
-          }else if (type == 'Gauss'){
-            if (is.null(mean) | is.null(sd)) stop('The parameters mean and standard deviation (sd) must be specified when using an Gaussian pdf!')
-            dist <- abs(rnorm(1, mean = mean, sd = sd))
+          //GENERATE DISTANCES
+          if (rtype == "Cauchy"){
+            
+            //TO DO: is this right? ******************
+            dist = abs(1, 0, scale1);  
+          
+          }else if (rtype == "Cauchy Mixture"){
+            
+            if (gamma >= 1 || gamma <= 0) 
+              stop("The parameter gamma must range between (0-1)");
+            
+            //TO DO: does it have to be NumericVector even for size=1 ? ******************
+            NumericVector fv = sample(Range(1, 2), 1, false, (gamma, 1-gamma));
+            int f = fv[0];
+            if(f == 1) 
+            //TO DO: is this right? ******************
+              dist = abs(rcauchy(1, 0, scale1));
+            else if (f==2) 
+            //TO DO: is this right? ******************
+              dist = abs(rcauchy(1, 0, scale2)); 
+          
+          }else if (rtype == "Exponential"){
+          
+            if (mean <= 0) 
+              stop("The parameter mean must be greater than zero!");
+            //TO DO: is this right? ******************
+            dist = abs(rexp(1, 0, 1/mean));
+          
+          }else if (rtype == "Gauss"){
+            
+            if (mean <= 0 || sd <= 0) 
+              stop("The parameters mean and standard deviation (sd) must be greater than zero!");
+            //TO DO: is this right? ******************
+            dist = abs(rnorm(1, mean, sd));
+          
           }
                     
-          //angle
-          theta = R::runif(-PI, PI);
-                    
-          row0 = row - floor(((dist * cos(theta)) + (res_win/2)) / res_win);
-          col0 = col + floor(((dist * sin(theta)) + (res_win/2)) / res_win);
+          //GENERATE ANGLES
+          if (wtype=="Uniform"){
+            //TO DO: is this right? ******************
+            theta = runif(1, -PI, PI);
+            
+          }else if(wtype=="VM"){
+            
+            if(kappa <= 0) 
+              stop("kappa must be greater than zero!");
+            
+            //Check predominant windDir
+            if (wdir == "N") 
+              theta = rvm(1, 0 * (PI/180), kappa);  //kappa=concentration
+            else if (wdir == "NE")
+              theta = rvm(1, 45 * (PI/180), kappa);  //kappa=concentration
+            else if(wdir == "E")
+              theta = rvm(1, 90 * (PI/180), kappa);  //kappa=concentration
+            else if(wdir == "SE")
+              theta = rvm(1, 135 * (PI/180), kappa);  //kappa=concentration
+            else if(wdir == "S")
+              theta = rvm(1, 180 * (PI/180), kappa);  //kappa=concentration
+            else if(wdir == "SW")
+              theta = rvm(1, 225 * (PI/180), kappa);  //kappa=concentration
+            else if(wdir == "W")
+              theta = rvm(1, 270 * (PI/180), kappa);  //kappa=concentration
+            else if(wdir == "NW")
+              theta = rvm(1, 315 * (PI/180), kappa);  //kappa=concentration
+                        
+          }
+          
+          row0 = row - round((dist * cos(theta)) / rs);
+          col0 = col + round((dist * sin(theta)) / rs);
           
           if (row0 < 1 || row0 >= nrow) continue;     //outside the region
           if (col0 < 1 || col0 >= ncol) continue;     //outside the region
@@ -93,8 +138,11 @@ SEXP SporeDisp(SEXP SPORES, SEXP SUSC, SEXP INF, String type, float res_win, flo
   return(out) 
 */
 
-  return List::create(Named("I")=I, Named("S")=S);
-  
+  //return List::create(Named("I")=I, Named("S")=S);
+  return List::create(
+    _["S"] = S, 
+    _["I"] = I
+  );
   
 }
 
