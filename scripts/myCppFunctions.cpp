@@ -8,19 +8,21 @@ using namespace Rcpp;
 // For more on using Rcpp click the Help button on the editor toolbar
 
 // [[Rcpp::export]]
-List SporeDisp(NumericMatrix x, NumericMatrix S, NumericMatrix I, float rs, String rtype, float mean=NA_REAL, float sd=NA_REAL, float scale1=NA_REAL, float scale2=NA_REAL, float gamma=NA_REAL,
-                String wtype, String wdir, kappa=NA_REAL){
-
+List SporeDisp(NumericMatrix x, NumericMatrix S, NumericMatrix I, double rs,
+                String rtype, String wtype, String wdir,
+                double mean=NA_REAL, double sd=NA_REAL,
+                double scale1=NA_REAL, double scale2=NA_REAL, double gamma=NA_REAL,
+                int kappa=NA_REAL){
 
   // internal variables //
   int nrow = x.nrow(); 
   int ncol = x.ncol();
-  int dist;
+  double dist;
   int row0;
   int col0;
-          
-  float theta;
-  float PropS;
+
+  double theta;
+  double PropS;
   
   Function rcauchy("rcauchy");
   Function rexp("rexp");
@@ -28,9 +30,10 @@ List SporeDisp(NumericMatrix x, NumericMatrix S, NumericMatrix I, float rs, Stri
   Function runif("runif");
   Function rvm("rvm");
   Function sample("sample");
-  
+
+  // for Rcpp random numbers
   //RNGScope scope;
-  
+
   //LOOP THROUGH EACH CELL of the input matrix 'x' (this should be the study area)
   for (int row = 0; row < nrow; row++) {
     for (int col = 0; col < ncol; col++){
@@ -43,7 +46,7 @@ List SporeDisp(NumericMatrix x, NumericMatrix S, NumericMatrix I, float rs, Stri
           if (rtype == "Cauchy"){
             
             //TO DO: is this right? ******************
-            dist = abs(1, 0, scale1);  
+            dist = abs(rcauchy(1, 0, scale1))[0];
           
           }else if (rtype == "Cauchy Mixture"){
             
@@ -55,31 +58,31 @@ List SporeDisp(NumericMatrix x, NumericMatrix S, NumericMatrix I, float rs, Stri
             int f = fv[0];
             if(f == 1) 
             //TO DO: is this right? ******************
-              dist = abs(rcauchy(1, 0, scale1));
+              dist = abs(rcauchy(1, 0, scale1))[0];
             else if (f==2) 
             //TO DO: is this right? ******************
-              dist = abs(rcauchy(1, 0, scale2)); 
-          
+              dist = abs(rcauchy(1, 0, scale2))[0];
+
           }else if (rtype == "Exponential"){
           
             if (mean <= 0) 
               stop("The parameter mean must be greater than zero!");
             //TO DO: is this right? ******************
-            dist = abs(rexp(1, 0, 1/mean));
-          
+            dist = abs(rexp(1, 0, 1/mean))[0];
+
           }else if (rtype == "Gauss"){
             
             if (mean <= 0 || sd <= 0) 
               stop("The parameters mean and standard deviation (sd) must be greater than zero!");
             //TO DO: is this right? ******************
-            dist = abs(rnorm(1, mean, sd));
-          
+            dist = abs(rnorm(1, mean, sd))[0];
+
           }
                     
           //GENERATE ANGLES
           if (wtype=="Uniform"){
             //TO DO: is this right? ******************
-            theta = runif(1, -PI, PI);
+            theta = as<double>(runif(1, -PI, PI));
             
           }else if(wtype=="VM"){
             
@@ -88,22 +91,22 @@ List SporeDisp(NumericMatrix x, NumericMatrix S, NumericMatrix I, float rs, Stri
             
             //Check predominant windDir
             if (wdir == "N") 
-              theta = rvm(1, 0 * (PI/180), kappa);  //kappa=concentration
+              theta = as<double>(rvm(1, 0 * (PI/180), kappa));  // kappa=concentration
             else if (wdir == "NE")
-              theta = rvm(1, 45 * (PI/180), kappa);  //kappa=concentration
+              theta = as<double>(rvm(1, 45 * (PI/180), kappa));  // kappa=concentration
             else if(wdir == "E")
-              theta = rvm(1, 90 * (PI/180), kappa);  //kappa=concentration
+              theta = as<double>(rvm(1, 90 * (PI/180), kappa));  // kappa=concentration
             else if(wdir == "SE")
-              theta = rvm(1, 135 * (PI/180), kappa);  //kappa=concentration
+              theta = as<double>(rvm(1, 135 * (PI/180), kappa));  // kappa=concentration
             else if(wdir == "S")
-              theta = rvm(1, 180 * (PI/180), kappa);  //kappa=concentration
+              theta = as<double>(rvm(1, 180 * (PI/180), kappa));  // kappa=concentration
             else if(wdir == "SW")
-              theta = rvm(1, 225 * (PI/180), kappa);  //kappa=concentration
+              theta = as<double>(rvm(1, 225 * (PI/180), kappa));  // kappa=concentration
             else if(wdir == "W")
-              theta = rvm(1, 270 * (PI/180), kappa);  //kappa=concentration
+              theta = as<double>(rvm(1, 270 * (PI/180), kappa));  // kappa=concentration
             else if(wdir == "NW")
-              theta = rvm(1, 315 * (PI/180), kappa);  //kappa=concentration
-                        
+              theta = as<double>(rvm(1, 315 * (PI/180), kappa));  // kappa=concentration
+
           }
           
           row0 = row - round((dist * cos(theta)) / rs);
@@ -114,7 +117,7 @@ List SporeDisp(NumericMatrix x, NumericMatrix S, NumericMatrix I, float rs, Stri
           
           if(S(row0, col0) > 0){  
             PropS = S(row0, col0) / (S(row0, col0) + I(row0, col0));
-            float U = rand();
+            double U = rand();
             if (U < PropS){
               I(row0, col0) =+ 1; 
               S(row0, col0) =- 1;
@@ -145,6 +148,3 @@ List SporeDisp(NumericMatrix x, NumericMatrix S, NumericMatrix I, float rs, Stri
   );
   
 }
-
-
-
