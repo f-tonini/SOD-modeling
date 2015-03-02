@@ -44,7 +44,8 @@ IntegerMatrix SporeGen(IntegerMatrix I, NumericMatrix W, double rate){
 
 
 // [[Rcpp::export]]
-List SporeDispCpp(NumericMatrix x, NumericMatrix S, NumericMatrix I, double rs,   //use different name than the functions in myfunctions_SOD.r
+List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
+                double rs,   
                 String rtype, String wtype, String wdir,
                 double mean=NA_REAL, double sd=NA_REAL,
                 double scale1=NA_REAL, double scale2=NA_REAL, double gamma=NA_REAL,
@@ -60,10 +61,12 @@ List SporeDispCpp(NumericMatrix x, NumericMatrix S, NumericMatrix I, double rs, 
   double theta;
   double PropS;
   
-  Function rcauchy("rcauchy");
-  Function rexp("rexp");
-  Function rnorm("rnorm");
-  Function runif("runif");
+  RNGScope scope;
+  
+  //Function rcauchy("rcauchy");
+  //Function rexp("rexp");
+  //Function rnorm("rnorm");
+  //Function runif("runif");
   Function rvm("rvm");
   Function sample("sample");
 
@@ -82,7 +85,7 @@ List SporeDispCpp(NumericMatrix x, NumericMatrix S, NumericMatrix I, double rs, 
           if (rtype == "Cauchy"){
             
             //TO DO: is this right? ******************
-            dist = abs(rcauchy(1, 0, scale1))[0];
+            dist = abs(R::rcauchy(0, scale1));
           
           }else if (rtype == "Cauchy Mixture"){
             
@@ -94,24 +97,24 @@ List SporeDispCpp(NumericMatrix x, NumericMatrix S, NumericMatrix I, double rs, 
             int f = fv[0];
             if(f == 1) 
             //TO DO: is this right? ******************
-              dist = abs(rcauchy(1, 0, scale1))[0];
+              dist = abs(R::rcauchy(0, scale1));
             else if (f==2) 
             //TO DO: is this right? ******************
-              dist = abs(rcauchy(1, 0, scale2))[0];
+              dist = abs(R::rcauchy(0, scale2));
 
           }else if (rtype == "Exponential"){
           
             if (mean <= 0) 
               stop("The parameter mean must be greater than zero!");
             //TO DO: is this right? ******************
-            dist = abs(rexp(1, 0, 1/mean))[0];
+            dist = abs(R::rexp(1/mean));
 
           }else if (rtype == "Gauss"){
             
             if (mean <= 0 || sd <= 0) 
               stop("The parameters mean and standard deviation (sd) must be greater than zero!");
             //TO DO: is this right? ******************
-            dist = abs(rnorm(1, mean, sd))[0];
+            dist = abs(R::rnorm(mean, sd));
 
           }
                     
@@ -125,7 +128,6 @@ List SporeDispCpp(NumericMatrix x, NumericMatrix S, NumericMatrix I, double rs, 
             if(kappa <= 0) 
               stop("kappa must be greater than zero!");
             
-            //Check predominant windDir
             if (wdir == "N") 
               theta = as<double>(rvm(1, 0 * (PI/180), kappa));  // kappa=concentration
             else if (wdir == "NE")
@@ -154,7 +156,7 @@ List SporeDispCpp(NumericMatrix x, NumericMatrix S, NumericMatrix I, double rs, 
           if(S(row0, col0) > 0){  
             PropS = S(row0, col0) / (S(row0, col0) + I(row0, col0));
             double U = rand();
-            if (U < PropS){
+            if (U < PropS * W(row0, col0)){   //weather suitability affects prob success!
               I(row0, col0) =+ 1; 
               S(row0, col0) =- 1;
             } 
