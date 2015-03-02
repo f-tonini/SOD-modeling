@@ -1,0 +1,16 @@
+<PAMDataset>
+  <PAMRasterBand band="1">
+    <Description>Layer_1</Description>
+    <Metadata>
+      <MDI key="LAYER_TYPE">athematic</MDI>
+      <MDI key="STATISTICS_MINIMUM">0.43683874607086</MDI>
+      <MDI key="STATISTICS_MAXIMUM">0.48993960022926</MDI>
+      <MDI key="STATISTICS_MEAN">0.47402799521089</MDI>
+      <MDI key="STATISTICS_STDDEV">0.014317099838605</MDI>
+      <MDI key="STATISTICS_SKIPFACTORX">1</MDI>
+      <MDI key="STATISTICS_SKIPFACTORY">1</MDI>
+      <MDI key="STATISTICS_EXCLUDEDVALUES"></MDI>
+      <MDI key="STATISTICS_COVARIANCES">2.0497934778858E-04</MDI>
+    </Metadata>
+  </PAMRasterBand>
+</PAMDataset>
