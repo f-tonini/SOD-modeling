@@ -8,25 +8,29 @@ using namespace Rcpp;
 // For more on using Rcpp click the Help button on the editor toolbar
 
 // [[Rcpp::export]]
-
-NumericMatrix SporeGen(NumericMatrix I, NumericMatrix W, double rate){
+IntegerMatrix SporeGen(IntegerMatrix I, NumericMatrix W, double rate){
   
   
   // internal variables
   int nrow = I.nrow(); 
   int ncol = I.ncol();
   
-  NumericMatrix SP = clone<NumericMatrix>(I);
-  Function rpois("rpois");
+  IntegerMatrix SP = clone<IntegerMatrix>(I);
+  //Function rpois("rpois");
+  
+  RNGScope scope;
   
   // LOOP THROUGH EACH INFECTED CELL AND GENERATE AMOUNT OF SPORES
   for (int row = 0; row < nrow; row++) {
     for (int col = 0; col < ncol; col++){
       
       if (I(row, col) > 0){  //if infected > 0, generate spores proportional to production rate * weather suitability
+
         double lambda = rate * W(row, col);
-        int inf = I(row, col);
-        SP(row, col) = as<double>(rpois(inf, lambda)); 
+        NumericVector inf = rpois(I(row, col), lambda);
+        int s = sum(inf);
+        SP(row, col) = s;
+
       }
    
     }
@@ -39,8 +43,8 @@ NumericMatrix SporeGen(NumericMatrix I, NumericMatrix W, double rate){
 }
 
 
-
-List SporeDisp(NumericMatrix x, NumericMatrix S, NumericMatrix I, double rs,
+// [[Rcpp::export]]
+List SporeDispCpp(NumericMatrix x, NumericMatrix S, NumericMatrix I, double rs,   //use different name than the functions in myfunctions_SOD.r
                 String rtype, String wtype, String wdir,
                 double mean=NA_REAL, double sd=NA_REAL,
                 double scale1=NA_REAL, double scale2=NA_REAL, double gamma=NA_REAL,
