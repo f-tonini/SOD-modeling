@@ -8,6 +8,38 @@ using namespace Rcpp;
 // For more on using Rcpp click the Help button on the editor toolbar
 
 // [[Rcpp::export]]
+
+NumericMatrix SporeGen(NumericMatrix I, NumericMatrix W, double rate){
+  
+  
+  // internal variables
+  int nrow = I.nrow(); 
+  int ncol = I.ncol();
+  
+  NumericMatrix SP = clone<NumericMatrix>(I);
+  Function rpois("rpois");
+  
+  // LOOP THROUGH EACH INFECTED CELL AND GENERATE AMOUNT OF SPORES
+  for (int row = 0; row < nrow; row++) {
+    for (int col = 0; col < ncol; col++){
+      
+      if (I(row, col) > 0){  //if infected > 0, generate spores proportional to production rate * weather suitability
+        double lambda = rate * W(row, col);
+        int inf = I(row, col);
+        SP(row, col) = as<double>(rpois(inf, lambda)); 
+      }
+   
+    }
+  }
+  
+  
+  return SP;
+
+
+}
+
+
+
 List SporeDisp(NumericMatrix x, NumericMatrix S, NumericMatrix I, double rs,
                 String rtype, String wtype, String wdir,
                 double mean=NA_REAL, double sd=NA_REAL,
