@@ -185,7 +185,7 @@ for (tt in tstep){
     
     
     #SPORE DISPERSAL:
-    out <- SporeDispCpp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='VM', wdir='N', kappa=2)
+    out <- SporeDispCpp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', wtype='VM', wdir='N', scale1=20.57, kappa=2)
     
     
     #(SporeDisp2 seems faster in R alone!!)
