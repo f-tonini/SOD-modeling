@@ -181,20 +181,18 @@ for (tt in tstep){
     
     ##LOOP TO GENERATE SPORES
     #integer vector
-    spores_mat <- SporeGen(infected, W, 4.4)
+    spores_mat <- SporeGen(infected, W, rate = 4.4)
     
-    
-    spores_lst[I_lst > 0] <- sapply(I_lst[I_lst > 0], FUN=new.infections.gen, rate=4.4*)  #4.4 * 4 convert approximately to spores/month
-    #integer matrix 
-    spores_mat <- matrix(spores_lst, ncol=ncol(Nmax_rast), nrow=nrow(Nmax_rast), byrow=T)
     
     #SPORE DISPERSAL:
-    #(SporeDisp2 seems faster in R alone!!)
+    out <- SporeDispCpp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='VM', wdir='N', kappa=2)
     
+    
+    #(SporeDisp2 seems faster in R alone!!)
     #out <- SporeDisp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')  #C++ functions to CONVERT
     #out <- SporeDisp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='VM', wdir='N', kappa=2)  #C++ functions to CONVERT
     #out <- SporeDisp2(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')  #C++ functions to CONVERT
-    out <- SporeDisp2(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='VM', wdir='N', kappa=2)  #C++ functions to CONVERT
+    #out <- SporeDisp2(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='VM', wdir='N', kappa=2)  #C++ functions to CONVERT
     
     susceptible <- out$S 
     infected <- out$I  
