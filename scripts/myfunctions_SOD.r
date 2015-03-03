@@ -271,9 +271,10 @@ spores.count <- function(x, y){
 }
 
 
-new.infections.gen <- function(x, rate){
+new.infections.gen <- function(x, rate, clim=NULL){
   
-    x <- rpois(x,lambda=rate)
+    if(is.null(clim)) x <- rpois(x,lambda=rate) else x <- rpois(x,lambda=rate * clim)
+
     x <- sum(x)
     return(x)
   
