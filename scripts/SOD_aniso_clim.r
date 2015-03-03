@@ -55,8 +55,9 @@ tstep <- seq(dd_start, dd_end, 'weeks')
 #tstep <- sapply(months, FUN=function(x) paste(x,start:end,sep=''))
 #tstep <- c(t(s))
 
-#MOISTURE
-Mstack <- stack()
+#WEATHER SUITABILITY:
+Mstack <- stack() #M = moisture
+Cstack <- stack() #C = temperature
 
 for (yr in seq(start,end)){
   
@@ -66,29 +67,20 @@ for (yr in seq(start,end)){
   Mlst <- Mlst[match( paste('m',seq(1,52),sep=''),  sub("^([^.]*).*", "\\1", basename(Mlst)) )]
   Mlst_rstck <- stack(Mlst)
   
-  Mstack <- stack(Mstack, Mlst_rstck)
-  
-}
-
-#TEMPERATURE
-Cstack <- stack()
-
-for (yr in seq(start,end)){
-  
-  #moisture coeff
+  #temperature coeff
   Clst <- dir(paste('./layers/C/', yr, sep=''), pattern='\\.img$', full.names=T)
   Clst_rstck <- stack(Clst)
   
+  Mstack <- stack(Mstack, Mlst_rstck)
   Cstack <- stack(Cstack, Clst_rstck)
   
 }
 
 
-
 ##read initial raster (host index) with counts of max available "Susceptible" trees per cell
 ##counts are integers [0, 100]
 Nmax_rast <- raster('./layers/HI_100m.img')
-Nmax <- Nmax_rast[]  #integer vector of Smax
+Nmax <- Nmax_rast[]  #integer vector of Nmax
 
 #raster resolution
 res_win <- res(Nmax_rast)[1]
@@ -122,14 +114,12 @@ S_lst <- Nmax - I_lst   #integer vector
 susceptible <- matrix(S_lst, ncol=ncol(Nmax_rast), nrow=nrow(Nmax_rast), byrow=T)
 infected <- matrix(I_lst, ncol=ncol(Nmax_rast), nrow=nrow(Nmax_rast), byrow=T)
 
-#initialize counter to index number of layers in the RasterStack
-cnt <- 0
 
 ##LOOP for each month (or whatever chosen time unit)
-for (tt in tstep){
+for (tt in 0:length(tstep)){
   
   
-  if (tt == tstep[1]) {
+  if (tt == 0) {
     
     if(!any(S_lst > 0)) stop('Simulation ended. There are no more susceptible trees on the landscape!')
     
@@ -170,14 +160,12 @@ for (tt in tstep){
       next 
     }
     
-    #update counter
-    cnt <- cnt + 1 
-    
+
     #Within each infected cell (I > 0) draw random number of infections ~Poisson(lambda=rate of spore production) for each infected host. 
     #Take SUM for total infections produced by each cell.
     
     #compute weather suitability coefficients for current time step
-    W <- as.matrix(Mstack[[cnt]] * Cstack[[cnt]])
+    W <- as.matrix(Mstack[[tt]] * Cstack[[tt]])
     
     ##LOOP TO GENERATE SPORES
     #integer vector
