@@ -10,36 +10,52 @@
 #-----------------------------------------------------------------------------------------------------------------------
 
 
+#install packages
+#install.packages(c("rgdal","raster","lubridate","CircStats","Rcpp"))
+
+#load packages
+library(raster)    	#Raster operation and I/O
+library(rgdal)	
+library(lubridate)
+library(CircStats)  #Von Mises distribution
+#library(spatstat)
+library(Rcpp)
+
+
 set.seed(2000)
 
 ##Define the main working directory
 ##Make sure to specify the appropriate path using either / or \\ to specify the path 
 #setwd("path_to_desired_folder")
-setwd("D:/TangibleLandscape")
+setwd("D:\\TangibleLandscape\\SOD-modeling")
 
 #Path to folders in which you want to save all your vector & raster files
-fOutput <- 'output'
+#fOutput <- 'output'
 
 ##Create a physical copy of the subdirectory folder(s) where you save your output
 ##If the directory already exists it gives a warning, BUT we can suppress it using showWarnings = FALSE
-dir.create(fOutput, showWarnings = FALSE)
+#dir.create(fOutput, showWarnings = FALSE)
 
 ##Use an external source file w/ all modules (functions) used within this script. 
 ##Use FULL PATH if source file is not in the same folder w/ this script
 source('./scripts/myfunctions_SOD.r')
-
-##Load all required libraries
-print('Loading required libraries...')
-load.packages()
+sourceCpp("./scripts/myCppFunctions.cpp") #for C++ custom functions
 
 
 ###Input simulation parameters:
 start <- 2004
 end <- 2006
-months <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
-months_msk <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep")
-tstep <- sapply(months, FUN=function(x) paste(x,start:end,sep=''))
-tstep <- c(t(s))
+
+dd_start <- as.POSIXlt(as.Date(paste(start,'-01-01',sep='')))
+dd_end <- as.POSIXlt(as.Date(paste(end,'-12-31',sep='')))
+
+tstep <- as.character(seq(dd_start, dd_end, 'weeks'))
+months_msk <- paste('0', 1:9, sep='')
+
+#months <- c("January","February","March","April","May","June","July","August","September","October","November","December")
+#months_msk <- c("January","February","March","April","May","June","July","August","September")
+#tstep <- sapply(months, FUN=function(x) paste(x,start:end,sep=''))
+#tstep <- c(t(s))
 
 ##read initial raster (host index) with counts of max available "Susceptible" trees per cell
 ##counts are integers [0, 100]
@@ -79,11 +95,9 @@ susceptible <- matrix(S_lst, ncol=ncol(Nmax_rast), nrow=nrow(Nmax_rast), byrow=T
 infected <- matrix(I_lst, ncol=ncol(Nmax_rast), nrow=nrow(Nmax_rast), byrow=T)
 
 
-##LOOP for each month (or whatever chosen time unit)
+##LOOP for each week
 for (tt in tstep){
   
-  if (!any(substr(tt,1,3) %in% months_msk)) next
-  print(tt)
   
   if (tt == tstep[1]) {
     
@@ -110,7 +124,19 @@ for (tt in tstep){
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='LOG1S', overwrite=TRUE)  # 0=non infected 1=infected output
     
   }else{
-       
+    
+    #is current week time step within a spread month? spread month defined as 1-9 (Jan-Sep)
+    if (!any(substr(tt,6,7) %in% months_msk)) {
+      breakpoints <- c(0, 0.25, 0.5, 0.75, 1)
+      colors <- c("yellow","gold","orange","red")
+      plot(I_rast, breaks=breakpoints, col=colors, main=tt)
+      #WRITE TO FILE:
+      #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
+      #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='INT1U', overwrite=TRUE) # nbr. infected hosts as output
+      #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='LOG1S', overwrite=TRUE)  # 0=non infected 1=infected output
+      next 
+    }   
+    
     #check if there are any susceptible trees left on the landscape (IF NOT continue LOOP till the end)
     if(!any(susceptible > 0)){
       breakpoints <- c(0, 0.25, 0.5, 0.75, 1)
@@ -124,21 +150,29 @@ for (tt in tstep){
     }
     
     #Within each infected cell (I > 0) draw random number of infections ~Poisson(lambda=rate of spore production) for each infected host. 
-    #Take SUM for total infections produced by each cell.
+    #Take SUM for total infections produced by each cell. 
+    
+    ### GENERATE SPORES ###: (no climate suitability added!)
     
     #integer vector
-    spores_lst[I_lst > 0] <- sapply(I_lst[I_lst > 0], FUN=new.infections.gen, rate=4.4*4)  #4.4 * 4 convert approximately to spores/month
+    spores_lst[I_lst > 0] <- mapply(new.infections.gen, x = I_lst[I_lst > 0], rate = 4.4, SIMPLIFY = TRUE)  #4.4 spores/month from Meentemeyer et al. 2011
     #integer matrix 
     spores_mat <- matrix(spores_lst, ncol=ncol(Nmax_rast), nrow=nrow(Nmax_rast), byrow=T)
     
-    #SPORE DISPERSAL:
-    #(SporeDisp2 seems faster in R alone!!)
+    ##using C++ via Rcpp:
+    #integer matrix
+    #spores_mat <- SporeGen(infected, W, rate = 4.4) 
     
-    #out <- SporeDisp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')  #C++ functions to CONVERT
-    #out <- SporeDisp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='VM', wdir='N', kappa=2)  #C++ functions to CONVERT
-    #out <- SporeDisp2(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')  #C++ functions to CONVERT
-    out <- SporeDisp2(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='VM', wdir='N', kappa=2)  #C++ functions to CONVERT
+    ### SPORE DISPERSAL ###:  (no climate suitability added!)
+    ##SporeDisp2 seems faster than SporeDisp, using R alone!!
     
+    #out <- SporeDisp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')    #wtype='VM', wdir='N', kappa=2
+    out <- SporeDisp2(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')   
+        
+    ##using C++ via Rcpp:
+    #list output
+    #out <- SporeDispCpp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', wtype='Uniform', scale1=20.57)   #wtype='VM', wdir='N', scale1=20.57, kappa=2)
+
     susceptible <- out$S 
     infected <- out$I  
     
