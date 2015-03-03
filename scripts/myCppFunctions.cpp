@@ -45,11 +45,9 @@ IntegerMatrix SporeGen(IntegerMatrix I, NumericMatrix W, double rate){
 
 // [[Rcpp::export]]
 List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
-                double rs,   
-                String rtype, String wtype, String wdir,
+                double rs, String rtype, String wtype, String wdir, double scale1=NA_REAL, int kappa=NA_REAL, double scale2=NA_REAL,
                 double mean=NA_REAL, double sd=NA_REAL,
-                double scale1=NA_REAL, double scale2=NA_REAL, double gamma=NA_REAL,
-                int kappa=NA_REAL){
+                double gamma=NA_REAL){
 
   // internal variables //
   int nrow = x.nrow(); 
@@ -79,7 +77,7 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
       
       if(x(row,col) > 0){  //if spores in cell (row,col) > 0, disperse
         
-        for(int sp = 1; (sp = x(row,col)); sp++){
+        for(int sp = 1; (sp <= x(row,col)); sp++){
           
           //GENERATE DISTANCES
           if (rtype == "Cauchy"){
