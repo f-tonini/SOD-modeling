@@ -1,5 +1,5 @@
 #--------------------------------------------------------------------------------
-# Name:         SOD_aniso.r
+# Name:         SOD_aniso_clim.r
 # Purpose:      Lattice-based simulation of the spread of pathogen P. ramorum over a heterogeneous landscape.
 # Author:       Francesco Tonini
 # Email:        ftonini84@gmail.com
@@ -10,14 +10,14 @@
 #-----------------------------------------------------------------------------------------------------------------------
 
 #install packages
-install.packages(c("rgdal","raster","lubridate","CircStats","spatstat","Rcpp"))
+#install.packages(c("rgdal","raster","lubridate","CircStats","Rcpp"))
 
 #load packages
 library(raster)  		#Raster operation and I/O
 library(rgdal)	
 library(lubridate)
 library(CircStats)  #Von Mises distribution
-library(spatstat)
+#library(spatstat)
 library(Rcpp)
 
 
@@ -48,7 +48,8 @@ end <- 2006
 dd_start <- as.POSIXlt(as.Date(paste(start,'-01-01',sep='')))
 dd_end <- as.POSIXlt(as.Date(paste(end,'-12-31',sep='')))
 
-tstep <- seq(dd_start, dd_end, 'weeks')
+tstep <- as.character(seq(dd_start, dd_end, 'weeks'))
+months_msk <- paste('0', 1:9, sep='')
 
 #months <- c("January","February","March","April","May","June","July","August","September","October","November","December")
 #months_msk <- c("January","February","March","April","May","June","July","August","September")
@@ -56,8 +57,7 @@ tstep <- seq(dd_start, dd_end, 'weeks')
 #tstep <- c(t(s))
 
 #WEATHER SUITABILITY:
-Mstack <- stack() #M = moisture
-Cstack <- stack() #C = temperature
+MCstack <- stack() #M = moisture; #C = temperature
 
 for (yr in seq(start,end)){
   
@@ -71,8 +71,7 @@ for (yr in seq(start,end)){
   Clst <- dir(paste('./layers/C/', yr, sep=''), pattern='\\.img$', full.names=T)
   Clst_rstck <- stack(Clst)
   
-  Mstack <- stack(Mstack, Mlst_rstck)
-  Cstack <- stack(Cstack, Clst_rstck)
+  MCstack <- stack(MCstack, Mlst_rstck * Clst_rstck)
   
 }
 
@@ -115,11 +114,11 @@ susceptible <- matrix(S_lst, ncol=ncol(Nmax_rast), nrow=nrow(Nmax_rast), byrow=T
 infected <- matrix(I_lst, ncol=ncol(Nmax_rast), nrow=nrow(Nmax_rast), byrow=T)
 
 
-##LOOP for each month (or whatever chosen time unit)
-for (tt in 0:length(tstep)){
+##LOOP for each week
+for (tt in tstep){
   
   
-  if (tt == 0) {
+  if (tt == tstep[1]) {
     
     if(!any(S_lst > 0)) stop('Simulation ended. There are no more susceptible trees on the landscape!')
     
@@ -146,7 +145,16 @@ for (tt in 0:length(tstep)){
   }else{
       
     #is current week time step within a spread month? spread month defined as 1-9 (Jan-Sep)
-    if (!any(month(tt) %in% seq(1,9))) next
+    if (!any(substr(tt,6,7) %in% months_msk)) {
+      breakpoints <- c(0, 0.25, 0.5, 0.75, 1)
+      colors <- c("yellow","gold","orange","red")
+      plot(I_rast, breaks=breakpoints, col=colors, main=tt)
+      #WRITE TO FILE:
+      #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
+      #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='INT1U', overwrite=TRUE) # nbr. infected hosts as output
+      #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='LOG1S', overwrite=TRUE)  # 0=non infected 1=infected output
+      next 
+    }   
     
     #check if there are any susceptible trees left on the landscape (IF NOT continue LOOP till the end)
     if(!any(susceptible > 0)){
@@ -160,27 +168,34 @@ for (tt in 0:length(tstep)){
       next 
     }
     
-
-    #Within each infected cell (I > 0) draw random number of infections ~Poisson(lambda=rate of spore production) for each infected host. 
-    #Take SUM for total infections produced by each cell.
-    
     #compute weather suitability coefficients for current time step
-    W <- as.matrix(Mstack[[tt]] * Cstack[[tt]])
+    W <- as.matrix(MCstack[[tt]])
     
-    ##LOOP TO GENERATE SPORES
+    #Within each infected cell (I > 0) draw random number of infections ~Poisson(lambda=rate of spore production) for each infected host. 
+    #Take SUM for total infections produced by each cell. 
+    
+    ### GENERATE SPORES ###:
+    
     #integer vector
-    spores_mat <- SporeGen(infected, W, rate = 4.4)
+    W_lst <- c(t(W))
+    spores_lst[I_lst > 0] <- mapply(new.infections.gen, x = I_lst[I_lst > 0], rate = 4.4, clim = W_lst, SIMPLIFY = TRUE)  #4.4 spores/month from Meentemeyer et al. 2011
+    #integer matrix 
+    spores_mat <- matrix(spores_lst, ncol=ncol(Nmax_rast), nrow=nrow(Nmax_rast), byrow=T)
     
+    ##using C++ via Rcpp:
+    #integer matrix
+    #spores_mat <- SporeGen(infected, W, rate = 4.4) 
     
-    #SPORE DISPERSAL:
-    out <- SporeDispCpp(spores_mat, S=susceptible, I=infected, W, rs=res_win, rtype='Cauchy', wtype='VM', wdir='N', scale1=20.57, kappa=2)
+    ### SPORE DISPERSAL ###:  
+    ##SporeDisp2 seems faster than SporeDisp, using R alone!!
     
+    ##TO DO: ADD CLIMATE SUITABILITY IN SPORE DISPERSAL WITH R ALONE!
+    #out <- SporeDisp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')    #wtype='VM', wdir='N', kappa=2
+    #out <- SporeDisp2(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')   
     
-    #(SporeDisp2 seems faster in R alone!!)
-    #out <- SporeDisp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')  #C++ functions to CONVERT
-    #out <- SporeDisp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='VM', wdir='N', kappa=2)  #C++ functions to CONVERT
-    #out <- SporeDisp2(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')  #C++ functions to CONVERT
-    #out <- SporeDisp2(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='VM', wdir='N', kappa=2)  #C++ functions to CONVERT
+    ##using C++ via Rcpp:
+    #list output
+    #out <- SporeDispCpp(spores_mat, S=susceptible, I=infected, W, rs=res_win, rtype='Cauchy', wtype='Uniform', scale1=20.57)   #wtype='VM', wdir='N', scale1=20.57, kappa=2)
     
     susceptible <- out$S 
     infected <- out$I  
