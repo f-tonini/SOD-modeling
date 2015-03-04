@@ -45,7 +45,9 @@ IntegerMatrix SporeGen(IntegerMatrix I, NumericMatrix W, double rate){
 
 // [[Rcpp::export]]
 List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
-                double rs, String rtype, String wtype, String wdir, double scale1=NA_REAL, int kappa=NA_REAL, double scale2=NA_REAL,
+                double rs, String rtype, String wtype, 
+                String wdir=NA_STRING,
+                double scale1=NA_REAL, int kappa=NA_REAL, double scale2=NA_REAL,
                 double mean=NA_REAL, double sd=NA_REAL,
                 double gamma=NA_REAL){
 
