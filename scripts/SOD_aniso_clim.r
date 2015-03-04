@@ -21,19 +21,17 @@ library(CircStats)  #Von Mises distribution
 library(Rcpp)
 
 
-set.seed(2000)
-
 ##Define the main working directory
 ##Make sure to specify the appropriate path using either / or \\ to specify the path 
 #setwd("path_to_desired_folder")
 setwd("D:\\TangibleLandscape\\SOD-modeling")
 
 #Path to folders in which you want to save all your vector & raster files
-fOutput <- 'output'
+#fOutput <- 'output'
 
 ##Create a physical copy of the subdirectory folder(s) where you save your output
 ##If the directory already exists it gives a warning, BUT we can suppress it using showWarnings = FALSE
-dir.create(fOutput, showWarnings = FALSE)
+#dir.create(fOutput, showWarnings = FALSE)
 
 ##Use an external source file w/ all modules (functions) used within this script. 
 ##Use FULL PATH if source file is not in the same folder w/ this script
@@ -57,7 +55,8 @@ months_msk <- paste('0', 1:9, sep='')
 #tstep <- c(t(s))
 
 #WEATHER SUITABILITY:
-MCstack <- stack() #M = moisture; #C = temperature
+Mstack <- stack() #M = moisture; 
+Cstack <- stack() #C = temperature;
 
 for (yr in seq(start,end)){
   
@@ -71,10 +70,13 @@ for (yr in seq(start,end)){
   Clst <- dir(paste('./layers/C/', yr, sep=''), pattern='\\.img$', full.names=T)
   Clst_rstck <- stack(Clst)
   
-  MCstack <- stack(MCstack, Mlst_rstck * Clst_rstck)
+  Mstack <- stack(Mstack, Mlst_rstck)
+  Cstack <- stack(Cstack, Clst_rstck)
   
 }
 
+
+set.seed(2000)
 
 ##read initial raster (host index) with counts of max available "Susceptible" trees per cell
 ##counts are integers [0, 100]
@@ -113,6 +115,7 @@ S_lst <- Nmax - I_lst   #integer vector
 susceptible <- matrix(S_lst, ncol=ncol(Nmax_rast), nrow=nrow(Nmax_rast), byrow=T)
 infected <- matrix(I_lst, ncol=ncol(Nmax_rast), nrow=nrow(Nmax_rast), byrow=T)
 
+cnt <- 0 #time counter to access raster stacks
 
 ##LOOP for each week
 for (tt in tstep){
@@ -143,12 +146,14 @@ for (tt in tstep){
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='LOG1S', overwrite=TRUE)  # 0=non infected 1=infected output
     
   }else{
-      
+     
+    cnt <- cnt + 1
+    
     #is current week time step within a spread month? spread month defined as 1-9 (Jan-Sep)
     if (!any(substr(tt,6,7) %in% months_msk)) {
-      breakpoints <- c(0, 0.25, 0.5, 0.75, 1)
-      colors <- c("yellow","gold","orange","red")
-      plot(I_rast, breaks=breakpoints, col=colors, main=tt)
+      #breakpoints <- c(0, 0.25, 0.5, 0.75, 1)
+      #colors <- c("yellow","gold","orange","red")
+      #plot(I_rast, breaks=breakpoints, col=colors, main=tt)
       #WRITE TO FILE:
       #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
       #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='INT1U', overwrite=TRUE) # nbr. infected hosts as output
@@ -165,34 +170,37 @@ for (tt in tstep){
       #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
       #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='INT1U', overwrite=TRUE) # nbr. infected hosts as output
       #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='LOG1S', overwrite=TRUE)  # 0=non infected 1=infected output
-      next 
+      break
     }
     
     #compute weather suitability coefficients for current time step
-    W <- as.matrix(MCstack[[tt]])
+    W <- as.matrix(Mstack[[cnt]] * Cstack[[cnt]])
     
     #Within each infected cell (I > 0) draw random number of infections ~Poisson(lambda=rate of spore production) for each infected host. 
     #Take SUM for total infections produced by each cell. 
     
     ### GENERATE SPORES ###:
     
+    #IF YOU WANT TO USE THE R FUNCTION, USE THIS BLOCK OF CODE  
     #integer vector
-    W_lst <- c(t(W))
-    spores_lst[I_lst > 0] <- mapply(new.infections.gen, x = I_lst[I_lst > 0], rate = 4.4, clim = W_lst, SIMPLIFY = TRUE)  #4.4 spores/month from Meentemeyer et al. 2011
+    #W_lst <- c(t(W))
+    #spores_lst[I_lst > 0] <- mapply(new.infections.gen, x = I_lst[I_lst > 0], rate = 4.4, clim = W_lst[I_lst > 0], SIMPLIFY = TRUE)  #4.4 spores/month from Meentemeyer et al. 2011
     #integer matrix 
-    spores_mat <- matrix(spores_lst, ncol=ncol(Nmax_rast), nrow=nrow(Nmax_rast), byrow=T)
+    #spores_mat <- matrix(spores_lst, ncol=ncol(Nmax_rast), nrow=nrow(Nmax_rast), byrow=T)
     
+    #IF YOU WANT TO USE THE RCPP FUNCTION, USE THIS BLOCK OF CODE INSTEAD
     ##using C++ via Rcpp:
     #integer matrix
-    #spores_mat <- SporeGen(infected, W, rate = 4.4) 
+    spores_mat <- SporeGen(infected, W, rate = 4.4) 
     
     ### SPORE DISPERSAL ###:  
+    
+    #IF YOU WANT TO USE THE R FUNCTION, USE THIS BLOCK OF CODE  
     ##SporeDisp2 seems faster than SporeDisp, using R alone!!
+    #IF YOU WANT TO USE THE R FUNCTION, USE THIS BLOCK OF CODE 
+    out <- SporeDisp(spores_mat, S=susceptible, I=infected, W, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')    #wtype='VM', wdir='N', kappa=2  
     
-    ##TO DO: ADD CLIMATE SUITABILITY IN SPORE DISPERSAL WITH R ALONE!
-    #out <- SporeDisp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')    #wtype='VM', wdir='N', kappa=2
-    #out <- SporeDisp2(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')   
-    
+    #IF YOU WANT TO USE THE RCPP FUNCTION, USE THIS BLOCK OF CODE INSTEAD
     ##using C++ via Rcpp:
     #list output
     #out <- SporeDispCpp(spores_mat, S=susceptible, I=infected, W, rs=res_win, rtype='Cauchy', wtype='Uniform', scale1=20.57)   #wtype='VM', wdir='N', scale1=20.57, kappa=2)
@@ -203,8 +211,9 @@ for (tt in tstep){
     I_rast[] <- infected
     I_lst <- I_rast[]
     
+    #IF YOU WANT TO USE THE R FUNCTION, USE THIS BLOCK OF CODE 
     #wipe out spores vector to use in following time steps
-    spores_lst <- rep(0, length(Nmax))  #integer
+    #spores_lst <- rep(0, length(Nmax))  #integer
     
     ##CALCULATE OUTPUT TO PLOT:
     # 1) values as % infected
@@ -227,7 +236,7 @@ for (tt in tstep){
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='LOG1S', overwrite=TRUE)  # 0=non infected 1=infected output
   }
   
-  
+  #Sys.sleep(1)
 }
 
 
