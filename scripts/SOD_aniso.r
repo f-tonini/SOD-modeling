@@ -127,9 +127,9 @@ for (tt in tstep){
     
     #is current week time step within a spread month? spread month defined as 1-9 (Jan-Sep)
     if (!any(substr(tt,6,7) %in% months_msk)) {
-      breakpoints <- c(0, 0.25, 0.5, 0.75, 1)
-      colors <- c("yellow","gold","orange","red")
-      plot(I_rast, breaks=breakpoints, col=colors, main=tt)
+      #breakpoints <- c(0, 0.25, 0.5, 0.75, 1)
+      #colors <- c("yellow","gold","orange","red")
+      #plot(I_rast, breaks=breakpoints, col=colors, main=tt)
       #WRITE TO FILE:
       #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
       #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='INT1U', overwrite=TRUE) # nbr. infected hosts as output
@@ -146,7 +146,7 @@ for (tt in tstep){
       #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
       #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='INT1U', overwrite=TRUE) # nbr. infected hosts as output
       #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='LOG1S', overwrite=TRUE)  # 0=non infected 1=infected output
-      next 
+      break 
     }
     
     #Within each infected cell (I > 0) draw random number of infections ~Poisson(lambda=rate of spore production) for each infected host. 
@@ -154,21 +154,24 @@ for (tt in tstep){
     
     ### GENERATE SPORES ###: (no climate suitability added!)
     
+    #IF YOU WANT TO USE THE R FUNCTION, USE THIS BLOCK OF CODE  
     #integer vector
     spores_lst[I_lst > 0] <- mapply(new.infections.gen, x = I_lst[I_lst > 0], rate = 4.4, SIMPLIFY = TRUE)  #4.4 spores/month from Meentemeyer et al. 2011
     #integer matrix 
     spores_mat <- matrix(spores_lst, ncol=ncol(Nmax_rast), nrow=nrow(Nmax_rast), byrow=T)
     
+    #IF YOU WANT TO USE THE RCPP FUNCTION, USE THIS BLOCK OF CODE INSTEAD
     ##using C++ via Rcpp:
     #integer matrix
     #spores_mat <- SporeGen(infected, W, rate = 4.4) 
     
     ### SPORE DISPERSAL ###:  (no climate suitability added!)
-    ##SporeDisp2 seems faster than SporeDisp, using R alone!!
     
-    #out <- SporeDisp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')    #wtype='VM', wdir='N', kappa=2
-    out <- SporeDisp2(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')   
-        
+    #IF YOU WANT TO USE THE R FUNCTION, USE THIS BLOCK OF CODE  
+    ##SporeDisp2 seems faster than SporeDisp, using R alone!!
+    #out <- SporeDisp2(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', scale=20.57, wtype='Uniform')    #wtype='VM', wdir='N', kappa=2
+
+    #IF YOU WANT TO USE THE RCPP FUNCTION, USE THIS BLOCK OF CODE INSTEAD
     ##using C++ via Rcpp:
     #list output
     #out <- SporeDispCpp(spores_mat, S=susceptible, I=infected, rs=res_win, rtype='Cauchy', wtype='Uniform', scale1=20.57)   #wtype='VM', wdir='N', scale1=20.57, kappa=2)
@@ -179,6 +182,7 @@ for (tt in tstep){
     I_rast[] <- infected
     I_lst <- I_rast[]
     
+    #IF YOU WANT TO USE THE R FUNCTION, USE THIS BLOCK OF CODE 
     #wipe out spores vector to use in following time steps
     spores_lst <- rep(0, length(Nmax))  #integer
     
@@ -203,6 +207,7 @@ for (tt in tstep){
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='LOG1S', overwrite=TRUE)  # 0=non infected 1=infected output
   }
   
+  Sys.sleep(1)
   
 }
 
