@@ -54,13 +54,14 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
   // internal variables //
   int nrow = x.nrow(); 
   int ncol = x.ncol();
-  double dist;
   int row0;
   int col0;
 
+  double dist;
   double theta;
   double PropS;
-  
+
+  //for Rcpp random numbers
   RNGScope scope;
   
   //Function rcauchy("rcauchy");
@@ -70,8 +71,6 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
   Function rvm("rvm");
   Function sample("sample");
 
-  // for Rcpp random numbers
-  //RNGScope scope;
 
   //LOOP THROUGH EACH CELL of the input matrix 'x' (this should be the study area)
   for (int row = 0; row < nrow; row++) {
@@ -83,45 +82,37 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
           
           //GENERATE DISTANCES
           if (rtype == "Cauchy"){
-            
-            //TO DO: is this right? ******************
+
             dist = abs(R::rcauchy(0, scale1));
           
           }else if (rtype == "Cauchy Mixture"){
             
-            if (gamma >= 1 || gamma <= 0) 
-              stop("The parameter gamma must range between (0-1)");
+            if (gamma >= 1 || gamma <= 0) stop("The parameter gamma must range between (0-1)");
             
             //TO DO: does it have to be NumericVector even for size=1 ? ******************
             NumericVector fv = sample(Range(1, 2), 1, false, (gamma, 1-gamma));
             int f = fv[0];
             if(f == 1) 
-            //TO DO: is this right? ******************
               dist = abs(R::rcauchy(0, scale1));
             else if (f==2) 
-            //TO DO: is this right? ******************
               dist = abs(R::rcauchy(0, scale2));
 
           }else if (rtype == "Exponential"){
           
-            if (mean <= 0) 
-              stop("The parameter mean must be greater than zero!");
-            //TO DO: is this right? ******************
+            if (mean <= 0) stop("The parameter mean must be greater than zero!");
             dist = abs(R::rexp(1/mean));
 
           }else if (rtype == "Gauss"){
             
-            if (mean <= 0 || sd <= 0) 
-              stop("The parameters mean and standard deviation (sd) must be greater than zero!");
-            //TO DO: is this right? ******************
+            if (mean <= 0 || sd <= 0) stop("The parameters mean and standard deviation (sd) must be greater than zero!");
             dist = abs(R::rnorm(mean, sd));
 
           }
                     
           //GENERATE ANGLES
           if (wtype=="Uniform"){
-            //TO DO: is this right? ******************
-            theta = as<double>(runif(1, -PI, PI));
+
+            theta = R::runif(-PI, PI);
             
           }else if(wtype=="VM"){
             
@@ -147,15 +138,18 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
 
           }
           
+          
           row0 = row - round((dist * cos(theta)) / rs);
           col0 = col + round((dist * sin(theta)) / rs);
+          
           
           if (row0 < 1 || row0 >= nrow) continue;     //outside the region
           if (col0 < 1 || col0 >= ncol) continue;     //outside the region
           
+          
           if(S(row0, col0) > 0){  
             PropS = S(row0, col0) / (S(row0, col0) + I(row0, col0));
-            double U = rand();
+            double U = R::runif(0,1);
             if (U < PropS * W(row0, col0)){   //weather suitability affects prob success!
               I(row0, col0) =+ 1; 
               S(row0, col0) =- 1;
@@ -170,14 +164,6 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
       
     }   
   }//END LOOP OVER ALL GRID CELLS
-
-
-/*
-  out$I <- infected 
-  out$S <- susceptible
-  
-  return(out) 
-*/
 
   //return List::create(Named("I")=I, Named("S")=S);
   return List::create(
