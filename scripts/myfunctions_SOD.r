@@ -271,9 +271,10 @@ spores.count <- function(x, y){
 }
 
 
-new.infections.gen <- function(x, rate){
+new.infections.gen <- function(x, rate, clim=NULL){
   
-    x <- rpois(x,lambda=rate)
+    if(is.null(clim)) x <- rpois(x,lambda=rate) else x <- rpois(x,lambda=rate * clim)
+
     x <- sum(x)
     return(x)
   
@@ -322,7 +323,7 @@ radialDisp <- function(xyAOIPos, AOI_owin){
 }
 
 
-SporeDisp <- function(x, S, I, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 'Gauss'), mean = NULL, sd = NULL, scale = NULL, gamma=NULL, 
+SporeDisp <- function(x, S, I, W=NULL, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 'Gauss'), mean = NULL, sd = NULL, scale = NULL, gamma=NULL, 
                       wtype=c('Uniform', 'VM'), wdir=c('N','NE','E','SE','S','SW','W','NW'), kappa=NULL){
   
   out <- list()
@@ -392,9 +393,10 @@ SporeDisp <- function(x, S, I, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponent
           if (col0 < 1 | col0 > ncol(x)) next     ## outside the region ##
           
           if(S[row0, col0] > 0){  
-            currentPropS <- round(S[row0, col0] / (S[row0, col0] + I[row0, col0]), 2)
+            PropS <- round(S[row0, col0] / (S[row0, col0] + I[row0, col0]), 2)
             U <- runif(1)
-            if (U < currentPropS){
+            if(!is.null(W)) Prob <- PropS * W[row0, col0] else Prob <- PropS    #added weather
+            if (U < Prob){
               I[row0, col0] <- I[row0, col0] + 1 
               S[row0, col0] <- S[row0, col0] - 1
             } 
@@ -415,7 +417,7 @@ SporeDisp <- function(x, S, I, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponent
 }
 
 
-SporeDisp2 <- function(x, S, I, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 'Gauss'), mean = NULL, sd = NULL, scale = NULL, gamma=NULL, 
+SporeDisp2 <- function(x, S, I, W=NULL, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponential', 'Gauss'), mean = NULL, sd = NULL, scale = NULL, gamma=NULL, 
                        wtype=c('Uniform', 'VM'), wdir=c('N','NE','E','SE','S','SW','W','NW'), kappa=NULL){
   
   out <- list()
@@ -487,12 +489,16 @@ SporeDisp2 <- function(x, S, I, rs, rtype=c('Cauchy', 'Cauchy Mixture', 'Exponen
           col0 <- col0[-which(bool==1)]
         }
         
+        #if all spores fall outside region continue loop to next cell
+        if (length(row0) == 0 | length(col0) == 0) next 
+        
         ##LOOP THROUGH ROW0 and COL0 TO ADD DISPERSED SPORES
         for(i in 1:length(row0)){
           if(S[row0[i], col0[i]] > 0){
-            currentPropS <- round(S[row0[i], col0[i]] / (S[row0[i], col0[i]] + I[row0[i], col0[i]]), 2)
+            PropS <- round(S[row0[i], col0[i]] / (S[row0[i], col0[i]] + I[row0[i], col0[i]]), 2)
             U <- runif(1)
-            if (U < currentPropS){
+            if(!is.null(W)) Prob <- PropS * W[row0[i], col0[i]] else Prob <- PropS    #added weather
+            if (U < Prob){    
               I[row0[i], col0[i]] <- I[row0[i], col0[i]] + 1 
               S[row0[i], col0[i]] <- S[row0[i], col0[i]] - 1
             }#ENF IF 
