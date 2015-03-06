@@ -393,9 +393,10 @@ SporeDisp <- function(x, S, I, W=NULL, rs, rtype=c('Cauchy', 'Cauchy Mixture', '
           if (col0 < 1 | col0 > ncol(x)) next     ## outside the region ##
           
           if(S[row0, col0] > 0){  
-            PropS <- round(S[row0, col0] / (S[row0, col0] + I[row0, col0]), 2)
+            PropS <- S[row0, col0] / (S[row0, col0] + I[row0, col0])
             U <- runif(1)
             if(!is.null(W)) Prob <- PropS * W[row0, col0] else Prob <- PropS    #added weather
+
             if (U < Prob){
               I[row0, col0] <- I[row0, col0] + 1 
               S[row0, col0] <- S[row0, col0] - 1
