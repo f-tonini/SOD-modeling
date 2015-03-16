@@ -7,8 +7,13 @@ using namespace Rcpp;
 
 // For more on using Rcpp click the Help button on the editor toolbar
 
+
+
+//Within each infected cell (I > 0) draw random number of infections ~Poisson(lambda=rate of spore production) for each infected host. 
+//Take SUM for total infections produced by each cell. 
+
 // [[Rcpp::export]]
-IntegerMatrix SporeGen(IntegerMatrix I, NumericMatrix W, double rate){
+IntegerMatrix SporeGenCpp(IntegerMatrix I, NumericMatrix W, double rate){
   
   
   // internal variables
@@ -41,7 +46,6 @@ IntegerMatrix SporeGen(IntegerMatrix I, NumericMatrix W, double rate){
 
 
 }
-
 
 // [[Rcpp::export]]
 List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r

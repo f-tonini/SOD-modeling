@@ -9,30 +9,6 @@
 # Software:     Tested successfully using R version 3.0.2 (http://www.r-project.org/)
 #-----------------------------------------------------------------------------------------------------------------------
 
-##CALL PACKAGES MODULE
-##This module is used to call all required packages
-load.packages <- function()
-{
-  
-  #setRepositories(ind=1:2)
-  
-  pkg <- c("rgdal","raster","CircStats","spatstat","Rcpp")
-  w <- which(pkg %in% row.names(installed.packages()) == FALSE)
-  if (length(w) > 0) install.packages(pkg)[w] 
-  #install.packages(c("rgdal","raster","CircStats","spatstat","Rcpp"))
-  
-  update.packages(pkg, ask = FALSE, dependencies = c('Suggests'))
-  
-  library(raster)			#Raster operation and I/O
-  library(rgdal)	
-  library(CircStats)  #Von Mises distribution
-  library(spatstat)
-  #library(RcppArmadillo)
-  library(Rcpp)
-  
-  cat('\nAll libraries have been installed/loaded!\n')
-}
-
 
 cauchy.weight <- function(rs, d, scale, gamma = NULL) {
   
@@ -270,6 +246,9 @@ spores.count <- function(x, y){
   
 }
 
+
+#Within each infected cell (I > 0) draw random number of infections ~Poisson(lambda=rate of spore production) for each infected host. 
+#Take SUM for total infections produced by each cell. 
 
 new.infections.gen <- function(x, rate, clim=NULL){
   
