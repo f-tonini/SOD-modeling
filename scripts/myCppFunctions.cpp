@@ -7,8 +7,13 @@ using namespace Rcpp;
 
 // For more on using Rcpp click the Help button on the editor toolbar
 
+
+
+//Within each infected cell (I > 0) draw random number of infections ~Poisson(lambda=rate of spore production) for each infected host. 
+//Take SUM for total infections produced by each cell. 
+
 // [[Rcpp::export]]
-IntegerMatrix SporeGen(IntegerMatrix I, NumericMatrix W, double rate){
+IntegerMatrix SporeGenCpp(IntegerMatrix I, NumericMatrix W, double rate){
   
   
   // internal variables
@@ -42,7 +47,6 @@ IntegerMatrix SporeGen(IntegerMatrix I, NumericMatrix W, double rate){
 
 }
 
-
 // [[Rcpp::export]]
 List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
                 double rs, String rtype, String wtype, 
@@ -70,7 +74,6 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
   //Function runif("runif");
   Function rvm("rvm");
   Function sample("sample");
-
 
   //LOOP THROUGH EACH CELL of the input matrix 'x' (this should be the study area)
   for (int row = 0; row < nrow; row++) {
@@ -148,11 +151,13 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
           
           
           if(S(row0, col0) > 0){  
-            PropS = S(row0, col0) / (S(row0, col0) + I(row0, col0));
+            PropS = double(S(row0, col0)) / (S(row0, col0) + I(row0, col0));
             double U = R::runif(0,1);
-            if (U < PropS * W(row0, col0)){   //weather suitability affects prob success!
-              I(row0, col0) =+ 1; 
-              S(row0, col0) =- 1;
+            double Prob = PropS * W(row0, col0);
+
+            if (U < Prob){   //weather suitability affects prob success!  
+              I(row0, col0) = I(row0, col0) + 1; 
+              S(row0, col0) = S(row0, col0) - 1;
             } 
           }//ENF IF
           
