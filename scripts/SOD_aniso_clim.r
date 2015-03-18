@@ -135,7 +135,7 @@ for (tt in tstep){
     
     #WRITE TO FILE:
     I_rast_sp <- as(I_rast, 'SpatialGridDataFrame')
-    writeRAST(I_rast_sp, vname='Infected_0.img', overwrite=TRUE) #write to GRASS raster file
+    writeRAST(I_rast_sp, vname='infected_000', overwrite=TRUE) #write to GRASS raster file
     
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='INT1U', overwrite=TRUE) # nbr. infected hosts as output
@@ -189,7 +189,7 @@ for (tt in tstep){
     
     #WRITE TO FILE:
     I_rast_sp <- as(I_rast, 'SpatialGridDataFrame')
-    writeRAST(I_rast_sp, vname=paste('Infected_', cnt, '.img', sep=''), overwrite=TRUE) #write to GRASS raster file
+    writeRAST(I_rast_sp, vname=paste('infected_', sprintf("%03d", cnt), sep=''), overwrite=TRUE) #write to GRASS raster file
     
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='INT1U', overwrite=TRUE) # nbr. infected hosts as output
