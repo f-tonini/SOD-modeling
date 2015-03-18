@@ -110,6 +110,8 @@ dd_start <- as.POSIXlt(as.Date(paste(start,'-01-01',sep='')))
 dd_end <- as.POSIXlt(as.Date(paste(end,'-12-31',sep='')))
 tstep <- as.character(seq(dd_start, dd_end, 'weeks'))
 
+# create formatting expression for padding zeros depending on total number of steps
+formatting_str = paste("%0", floor( log10( length(tstep) ) ) + 1, "d", sep='')
 
 ##MAIN SIMULATION LOOP (weekly steps)
 for (tt in tstep){
@@ -135,7 +137,7 @@ for (tt in tstep){
     
     #WRITE TO FILE:
     I_rast_sp <- as(I_rast, 'SpatialGridDataFrame')
-    writeRAST(I_rast_sp, vname='infected_000', overwrite=TRUE) #write to GRASS raster file
+    writeRAST(I_rast_sp, vname=paste('infected_', sprintf(formatting_str, 0), sep=''), overwrite=TRUE) #write to GRASS raster file
     
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='INT1U', overwrite=TRUE) # nbr. infected hosts as output
@@ -189,7 +191,7 @@ for (tt in tstep){
     
     #WRITE TO FILE:
     I_rast_sp <- as(I_rast, 'SpatialGridDataFrame')
-    writeRAST(I_rast_sp, vname=paste('infected_', sprintf("%03d", cnt), sep=''), overwrite=TRUE) #write to GRASS raster file
+    writeRAST(I_rast_sp, vname=paste('infected_', sprintf(formatting_str, cnt), sep=''), overwrite=TRUE) #write to GRASS raster file
     
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='INT1U', overwrite=TRUE) # nbr. infected hosts as output
