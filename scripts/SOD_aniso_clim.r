@@ -46,9 +46,9 @@ Cstack <- stack(Clst) #C = temperature;
 
 
 ###Input simulation parameters: #####
-
+arguments <- commandArgs(TRUE)
 ##Input raster --> HOST INDEX
-Nmax_rast <- readRAST(commandArgs()[2]) #in the current version this reads raster in GRASS as a 'sp' R object
+Nmax_rast <- readRAST(arguments[1]) #in the current version this reads raster in GRASS as a 'sp' R object
 Nmax_rast <- raster(Nmax_rast)  #transform 'sp' obj to 'raster' obj
 #Nmax_rast <- raster('./layers/HI_100m.img')
 
@@ -60,15 +60,15 @@ I_rast <- Nmax_rast
 
 
 ##Start-End date: 
-start <- commandArgs()[3]
-end <- commandArgs()[4]
+start <- arguments[2]
+end <- arguments[3]
 #start <- 2004
 #end <- 2008
 
 if (start > end) stop('start date must precede end date!!')
 
 ##Seasonality: Do you want the spread to be limited to certain months?
-ss <- commandArgs()[5]   #'ON' or 'OFF'
+ss <- arguments[4]   #'ON' or 'OFF'
 #ss <- 'ON'
 
 if (ss == 'ON') months_msk <- paste('0', 1:9, sep='') #1=January 9=September
