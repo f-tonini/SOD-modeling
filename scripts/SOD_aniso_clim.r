@@ -147,12 +147,12 @@ for (tt in tstep){
      
     #check if there are any susceptible trees left on the landscape (IF NOT continue LOOP till the end)
     if(!any(susceptible > 0)) break
-    
-    #is current week time step within a spread month (as defined by input parameters)?
-    if (ss == 'ON' & !any(substr(tt,6,7) %in% months_msk)) next
-    
+
     #update counter
     cnt <- cnt + 1
+
+    #is current week time step within a spread month (as defined by input parameters)?
+    if (ss == 'ON' & !any(substr(tt,6,7) %in% months_msk)) next
           
     #Total weather suitability:
     W <- as.matrix(Mstack[[cnt]] * Cstack[[cnt]])
