@@ -61,8 +61,8 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
   int row0;
   int col0;
 
-  double dist;
-  double theta;
+  double dist = 0;
+  double theta = 0;
   double PropS;
 
   //for Rcpp random numbers
