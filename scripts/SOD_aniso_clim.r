@@ -10,16 +10,16 @@
 #-----------------------------------------------------------------------------------------------------------------------
 
 #install packages
-#install.packages(c("rgdal","raster","lubridate","CircStats","Rcpp", "rgrass7"))
+#install.packages(c("rgdal","raster","lubridate","CircStats","Rcpp", "rgrass7", "optparse))
 
-#load packages
-library(raster)  		#Raster operation and I/O. Depends R (≥ 2.15.0)
-library(rgdal)	    #Geospatial data abstraction library. Depends R (≥ 2.14.0)
+#load packages:
+library(raster)  	 #Raster operation and I/O. Depends R (≥ 2.15.0)
+library(rgdal)	     #Geospatial data abstraction library. Depends R (≥ 2.14.0)
 library(lubridate)  #Make dealing with dates a little easier. Depends R (≥ 3.0.0)
 library(CircStats)  #Circular Statistics - Von Mises distribution
 library(Rcpp)       #Seamless R and C++ Integration. Depends R (≥ 3.0.0)
 library(rgrass7)    #Interface Between GRASS 7 GIS and R. Depends R (≥ 2.12)
-
+library(optparse)   #Parse args from command line
 
 ##Define the main working directory
 #setwd("path_to_main_folder")
@@ -46,10 +46,24 @@ Cstack <- stack(Clst) #C = temperature;
 
 
 ###Input simulation parameters: #####
-arguments <- commandArgs(TRUE)
+option_list = list(
+  make_option("--file", action="store", default=NA, type='character', help="input raster file"),
+  make_option(c("--start"), action="store", default=NA, type='integer', help="start year"),
+  make_option(c("--end"), action="store", default=NA, type='integer', help="end year"),
+  make_option(c("--seasonal"), action="store", default="YES", type='character', help="do you want the spread to be seasonal?"),
+  make_option(c("--wind"), action="store", default="NO", type='character', help="do you want the spread to be affected by wind?"),
+  make_option(c("--pwdir"), action="store", default=NA, type='character', help="predominant wind direction: N,NE,E,SE,S,SW,W,NW")
+)
+
+opt = parse_args(OptionParser(option_list=option_list))
+
+#arguments <- commandArgs(TRUE)
+
 ##Input raster --> HOST INDEX
-Nmax_rast <- readRAST(arguments[1]) #in the current version this reads raster in GRASS as a 'sp' R object
+Nmax_rast <- readRAST(opt$file)
 Nmax_rast <- raster(Nmax_rast)  #transform 'sp' obj to 'raster' obj
+#Nmax_rast <- readRAST(arguments[1]) #in the current version this reads raster in GRASS as a 'sp' R object
+#Nmax_rast <- raster(Nmax_rast)  #transform 'sp' obj to 'raster' obj
 #Nmax_rast <- raster('./layers/HI_100m.img')
 
 #raster resolution
@@ -60,23 +74,24 @@ I_rast <- Nmax_rast
 
 
 ##Start-End date: 
-start <- arguments[2]
-end <- arguments[3]
-#start <- 2004
-#end <- 2008
+start <- opt$start
+end <- opt$end
+#start <- arguments[2]
+#end <- arguments[3]
 
 if (start > end) stop('start date must precede end date!!')
 
 ##Seasonality: Do you want the spread to be limited to certain months?
-ss <- arguments[4]   #'ON' or 'OFF'
-#ss <- 'ON'
+ss <- opt$seasonal   #'YES' or 'NO'
+#ss <- arguments[4]   #'YES' or 'NO'
+if (ss == 'YES') months_msk <- paste('0', 1:9, sep='') #1=January 9=September
 
-if (ss == 'ON') months_msk <- paste('0', 1:9, sep='') #1=January 9=September
-
+##Wind: Do you want the spread to be affected by wind?
+#wnd <- arguments[5]  'YES' or 'NO'
+if (!(opt$wind %in% c('YES', 'NO'))) stop('You must specify whether you want spread by wind or not: use either YES or NO')
 
 
 set.seed(2000)
-
 
 ########################################################
 ##INITIAL SOURCES OF INFECTION:
@@ -144,15 +159,16 @@ for (tt in tstep){
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='LOG1S', overwrite=TRUE)  # 0=non infected 1=infected output
     
   }else{
-     
+    
+    
     #check if there are any susceptible trees left on the landscape (IF NOT continue LOOP till the end)
     if(!any(susceptible > 0)) break
     
-    #is current week time step within a spread month (as defined by input parameters)?
-    if (ss == 'ON' & !any(substr(tt,6,7) %in% months_msk)) next
-    
-    #update counter
+    #update week counter
     cnt <- cnt + 1
+    
+    #is current week time step within a spread month (as defined by input parameters)?
+    if (ss == 'YES' & !any(substr(tt,6,7) %in% months_msk)) next
           
     #Total weather suitability:
     W <- as.matrix(Mstack[[cnt]] * Cstack[[cnt]])
@@ -163,7 +179,17 @@ for (tt in tstep){
     
     #SPORE DISPERSAL:  
     #'List'
-    out <- SporeDispCpp(spores_mat, S=susceptible, I=infected, W, rs=res_win, rtype='Cauchy', wtype='Uniform', scale1=20.57)   #wtype='VM', wdir='N', scale1=20.57, kappa=2)
+    if (opt$wind == 'YES') {
+      
+      #wdir <- arguments[6] 
+      #wdir <- 'N'      
+      #Check if predominant wind direction has been specified correctly:
+      if (!(opt$pwdir %in% c('N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'))) stop('A predominant wind direction must be specified: N, NE, E, SE, S, SW, W, NW')
+      out <- SporeDispCppWind(spores_mat, S=susceptible, I=infected, W, rs=res_win, rtype='Cauchy', scale1=20.57, wdir=opt$pwdir, kappa=2)
+    
+    }else{
+      out <- SporeDispCpp(spores_mat, S=susceptible, I=infected, W, rs=res_win, rtype='Cauchy', scale1=20.57)
+    }  
     
     #update R matrices
     susceptible <- out$S 
