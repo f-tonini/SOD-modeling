@@ -36,13 +36,6 @@ library(optparse)   #Parse args from command line
 source('./scripts/myfunctions_SOD.r')
 sourceCpp("./scripts/myCppFunctions.cpp") #for C++ custom functions
 
-#WEATHER SUITABILITY: read and stack weather suitability raster BEFORE running the simulation
-lst <- dir('./layers/weather', pattern='\\.img$', full.names=T)
-Mlst <- lst[grep("_m", lst)]
-Clst <- lst[grep("_c", lst)]
-
-Mstack <- stack(Mlst) #M = moisture; 
-Cstack <- stack(Clst) #C = temperature;
 
 
 ###Input simulation parameters: #####
@@ -80,6 +73,18 @@ end <- opt$end
 #end <- arguments[3]
 
 if (start > end) stop('start date must precede end date!!')
+
+
+#WEATHER SUITABILITY: read and stack weather suitability raster BEFORE running the simulation
+lst <- dir('./layers/weather', pattern='\\.img$', full.names=T)
+Mlst <- lst[grep("_m", lst)]
+Mlst <- grep(paste(as.character(seq(start,end)), collapse="|"), Mlst, value=TRUE)  #use only the raster files matching the years of interest
+Clst <- lst[grep("_c", lst)]
+Clst <- grep(paste(as.character(seq(start,end)), collapse="|"), Clst, value=TRUE) #use only the raster files matching the years of interest
+
+Mstack <- stack(Mlst) #M = moisture; 
+Cstack <- stack(Clst) #C = temperature;
+
 
 ##Seasonality: Do you want the spread to be limited to certain months?
 ss <- opt$seasonal   #'YES' or 'NO'
