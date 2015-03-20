@@ -47,12 +47,12 @@ Cstack <- stack(Clst) #C = temperature;
 
 ###Input simulation parameters: #####
 option_list = list(
-  make_option("--file", action="store", default=NA, type='character', help="input raster file"),
-  make_option(c("--start"), action="store", default=NA, type='integer', help="start year"),
-  make_option(c("--end"), action="store", default=NA, type='integer', help="end year"),
-  make_option(c("--seasonal"), action="store", default="YES", type='character', help="do you want the spread to be seasonal?"),
-  make_option(c("--wind"), action="store", default="NO", type='character', help="do you want the spread to be affected by wind?"),
-  make_option(c("--pwdir"), action="store", default=NA, type='character', help="predominant wind direction: N,NE,E,SE,S,SW,W,NW")
+  make_option(c("-f","--file"), action="store", default=NA, type='character', help="input raster file"),
+  make_option(c("-s","--start"), action="store", default=NA, type='integer', help="start year"),
+  make_option(c("-e","--end"), action="store", default=NA, type='integer', help="end year"),
+  make_option(c("-ss","--seasonal"), action="store", default="YES", type='character', help="do you want the spread to be seasonal?"),
+  make_option(c("-w","--wind"), action="store", default="NO", type='character', help="do you want the spread to be affected by wind?"),
+  make_option(c("-pd","--pwdir"), action="store", default=NA, type='character', help="predominant wind direction: N,NE,E,SE,S,SW,W,NW")
 )
 
 opt = parse_args(OptionParser(option_list=option_list))
@@ -156,7 +156,7 @@ for (tt in tstep){
     #WRITE TO FILE:
     I_rast_sp <- as(I_rast, 'SpatialGridDataFrame')
     writeRAST(I_rast_sp, vname=paste('infected_', sprintf(formatting_str, 0), sep=''), overwrite=TRUE) #write to GRASS raster file
-	execGRASS('r.timestamp', map=paste('infected_', sprintf(formatting_str, cnt), sep=''), date=paste(split_date[3], months_names[as.numeric(split_date[2])], split_date[1]))
+	  execGRASS('r.timestamp', map=paste('infected_', sprintf(formatting_str, cnt), sep=''), date=paste(split_date[3], months_names[as.numeric(split_date[2])], split_date[1]))
     
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='INT1U', overwrite=TRUE) # nbr. infected hosts as output
@@ -222,7 +222,7 @@ for (tt in tstep){
     #WRITE TO FILE:
     I_rast_sp <- as(I_rast, 'SpatialGridDataFrame')
     writeRAST(I_rast_sp, vname=paste('infected_', sprintf(formatting_str, cnt), sep=''), overwrite=TRUE) #write to GRASS raster file
-	execGRASS('r.timestamp', map=paste('infected_', sprintf(formatting_str, cnt), sep=''), date=paste(split_date[3], months_names[as.numeric(split_date[2])], split_date[1]))
+	  execGRASS('r.timestamp', map=paste('infected_', sprintf(formatting_str, cnt), sep=''), date=paste(split_date[3], months_names[as.numeric(split_date[2])], split_date[1]))
     
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='INT1U', overwrite=TRUE) # nbr. infected hosts as output
