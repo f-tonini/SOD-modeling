@@ -27,18 +27,18 @@ Before running the code make sure to follow these steps:
   * **g.region raster = _your\_initial\_raster\_name_**
 
 5. Run the code by invoking the R script from the GRASS terminal prompt using:
-    * **Rscript _path\_to\_script_ --_simulation\_parameter\_list_** 
+    * **Rscript _path\_to\_script_ --_arguments\_list_** 
     
-Each parameter in the argument list is specified using the *--longflag*.
+Each parameter in the argument list is specified using either the *-shortflag* or the *--longflag* option.
 
-**--file** _your input raster_
+**-f** or **--file** _your input raster_
 
-**--start** _starting year for the simulation_
+**-s** or **--start** _starting year for the simulation_
 
-**--end** _last year for the simulation_
+**-e** or **--end** _last year for the simulation_
 
-**--seasonal** _restrict pathogen spread to the rainy season only YES (default), NO_
+**-ss** or **--seasonal** _restrict pathogen spread to the rainy season only YES (default), NO_
 
-**--wind** _account for wind direction for the pathogen spread YES, NO (default)_
+**-w** or **--wind** _account for wind direction for the pathogen spread YES, NO (default)_
 
-**--pwdir** _if you account for wind, what should the predominant wind direction be for the area? N (= North), NE (= Northeast), E (= East), etc._
+**-pd** or **--pwdir** _if you account for wind, what should the predominant wind direction be for the area? N (= North), NE (= Northeast), E (= East), etc._
