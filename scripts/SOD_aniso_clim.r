@@ -10,19 +10,22 @@
 #-----------------------------------------------------------------------------------------------------------------------
 
 #install packages
-#install.packages(c("rgdal","raster","lubridate","CircStats","Rcpp", "rgrass7", "optparse))
+#install.packages(c("rgdal","raster","lubridate","CircStats","Rcpp", "rgrass7", "optparse"))
 
 #load packages:
-library(raster)  	 #Raster operation and I/O. Depends R (≥ 2.15.0)
-library(rgdal)	     #Geospatial data abstraction library. Depends R (≥ 2.14.0)
-library(lubridate)  #Make dealing with dates a little easier. Depends R (≥ 3.0.0)
-library(CircStats)  #Circular Statistics - Von Mises distribution
-library(Rcpp)       #Seamless R and C++ Integration. Depends R (≥ 3.0.0)
-library(rgrass7)    #Interface Between GRASS 7 GIS and R. Depends R (≥ 2.12)
-library(optparse)   #Parse args from command line
+suppressPackageStartupMessages(library(raster))    #Raster operation and I/O. Depends R (≥ 2.15.0)
+suppressPackageStartupMessages(library(rgdal))     #Geospatial data abstraction library. Depends R (≥ 2.14.0)
+suppressPackageStartupMessages(library(lubridate)) #Make dealing with dates a little easier. Depends R (≥ 3.0.0)
+suppressPackageStartupMessages(library(CircStats)) #Circular Statistics - Von Mises distribution
+suppressPackageStartupMessages(library(Rcpp))      #Seamless R and C++ Integration. Depends R (≥ 3.0.0)
+suppressPackageStartupMessages(library(rgrass7))   #Interface Between GRASS 7 GIS and R. Depends R (≥ 2.12)
+suppressPackageStartupMessages(library(optparse))  #Parse args from command line
 
-##Define the main working directory
-#setwd("path_to_main_folder")
+##Define the main working directory based on the current script path
+initial_options <- commandArgs(trailingOnly = FALSE)
+file_arg <- "--file="
+base_name <- dirname(sub(file_arg, "", initial_options[grep(file_arg, initial_options)]))
+setwd(paste(sep="/", base_name, ".."))
 
 #Path to folders in which you want to save all your vector & raster files
 #fOutput <- 'output'
@@ -40,7 +43,7 @@ sourceCpp("./scripts/myCppFunctions.cpp") #for C++ custom functions
 
 ###Input simulation parameters: #####
 option_list = list(
-  make_option(c("-f","--file"), action="store", default=NA, type='character', help="input raster file"),
+  make_option(c("-hi","--host_index"), action="store", default=NA, type='character', help="input host index raster map"),
   make_option(c("-s","--start"), action="store", default=NA, type='integer', help="start year"),
   make_option(c("-e","--end"), action="store", default=NA, type='integer', help="end year"),
   make_option(c("-ss","--seasonal"), action="store", default="YES", type='character', help="do you want the spread to be seasonal?"),
@@ -50,10 +53,9 @@ option_list = list(
 
 opt = parse_args(OptionParser(option_list=option_list))
 
-#arguments <- commandArgs(TRUE)
 
 ##Input raster --> HOST INDEX
-Nmax_rast <- readRAST(opt$file)
+Nmax_rast <- readRAST(opt$host_index)
 Nmax_rast <- raster(Nmax_rast)  #transform 'sp' obj to 'raster' obj
 #Nmax_rast <- readRAST(arguments[1]) #in the current version this reads raster in GRASS as a 'sp' R object
 #Nmax_rast <- raster(Nmax_rast)  #transform 'sp' obj to 'raster' obj
@@ -234,9 +236,9 @@ for (tt in tstep){
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='LOG1S', overwrite=TRUE)  # 0=non infected 1=infected output
   }
   
-
 }
 
+message("Spread model finished")
 
 
 
