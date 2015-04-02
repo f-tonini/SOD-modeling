@@ -49,7 +49,8 @@ option_list = list(
   make_option(c("-ss","--seasonal"), action="store", default="YES", type='character', help="do you want the spread to be seasonal?"),
   make_option(c("-w","--wind"), action="store", default="NO", type='character', help="do you want the spread to be affected by wind?"),
   make_option(c("-pd","--pwdir"), action="store", default=NA, type='character', help="predominant wind direction: N,NE,E,SE,S,SW,W,NW"),
-  make_option(c("-o","--output"), action="store", default=NA, type='character', help="basename for output GRASS raster maps")
+  make_option(c("-o","--output"), action="store", default=NA, type='character', help="basename for output GRASS raster maps"),
+  make_option(c("-n","--nth_output"), action="store", default=1, type='integer', help="output every nth map")
 )
 
 opt = parse_args(OptionParser(option_list=option_list))
@@ -228,9 +229,11 @@ for (tt in tstep){
     #plot(I_rast, breaks=breakpoints, col=colors, main=tt)
     
     #WRITE TO FILE:
-    I_rast_sp <- as(I_rast, 'SpatialGridDataFrame')
-    writeRAST(I_rast_sp, vname=paste(opt$output, '_', sprintf(formatting_str, cnt), sep=''), overwrite=TRUE) #write to GRASS raster file
-	  execGRASS('r.timestamp', map=paste(opt$output, '_', sprintf(formatting_str, cnt), sep=''), date=paste(split_date[3], months_names[as.numeric(split_date[2])], split_date[1]))
+    if (cnt %% opt$nth_output == 0){
+      I_rast_sp <- as(I_rast, 'SpatialGridDataFrame')
+      writeRAST(I_rast_sp, vname=paste(opt$output, '_', sprintf(formatting_str, cnt), sep=''), overwrite=TRUE) #write to GRASS raster file
+      execGRASS('r.timestamp', map=paste(opt$output, '_', sprintf(formatting_str, cnt), sep=''), date=paste(split_date[3], months_names[as.numeric(split_date[2])], split_date[1]))
+    }
     
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
     #writeRaster(I_rast, filename=paste('./',fOutput,'/Infected_', tt, '.img',sep=''), format='HFA', datatype='INT1U', overwrite=TRUE) # nbr. infected hosts as output
