@@ -39,7 +39,6 @@ setwd(paste(sep="/", base_name, ".."))
 source('./scripts/myfunctions_SOD.r')
 sourceCpp("./scripts/myCppFunctions.cpp") #for C++ custom functions
 
-
 ###Input simulation parameters: #####
 option_list = list(
   make_option(c("-hi","--host_index"), action="store", default=NA, type='character', help="input host index raster map"),
@@ -64,9 +63,8 @@ Nmax_rast <- raster(Nmax_rast)  #transform 'sp' obj to 'raster' obj
 res_win <- res(Nmax_rast)[1]
 
 #background satellite image for plotting
-bkr_img <- readRAST(opt$image)
-bkr_img <- raster(bkr_img)
-#bkr_img <- raster('./layers/ortho_5m_color.tif') 
+bkg_img <- readRAST(opt$image)
+bkg_img <- raster(bkg_img)
 
 #clone Smax raster to I (=infected trees) raster and spores (=number of spores)
 I_rast <- Nmax_rast 
@@ -149,7 +147,7 @@ plot(bkg_img)
 for (tt in tstep){
   
   #split date string for raster time stamp
-  #split_date = unlist(strsplit(tt, '-'))
+  split_date = unlist(strsplit(tt, '-'))
   
   if (tt == tstep[1]) {
     
@@ -169,7 +167,7 @@ for (tt in tstep){
     #PLOT: overlay current plot on background image
     bks <- c(0, 0.25, 0.5, 0.75, 1)
     #colors <- c("yellow","gold","orange","red")
-    plot(I_rast, breaks=breakpoints, col=rev(heat.colors(length(bks)-1, alpha=.5)), main=tt, axes=F, legend=F, add=T)
+    plot(I_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=.5)), main=tt, axes=F, legend=F, add=T)
     
     #WRITE TO FILE:
     I_rast_sp <- as(I_rast, 'SpatialGridDataFrame')
@@ -236,7 +234,7 @@ for (tt in tstep){
       #PLOT: overlay current plot on background image
       bks <- c(0, 0.25, 0.5, 0.75, 1)
       #colors <- c("yellow","gold","orange","red")
-      plot(I_rast, breaks=breakpoints, col=rev(heat.colors(length(bks)-1, alpha=.5)), main=tt, axes=F, legend=F, add=T)
+      plot(I_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=.5)), main=tt, axes=F, legend=F, add=T)
       
       #WRITE TO FILE:
       I_rast_sp <- as(I_rast, 'SpatialGridDataFrame')
