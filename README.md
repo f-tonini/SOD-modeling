@@ -31,7 +31,9 @@ Before running the code make sure to follow these steps:
     
 Each parameter in the argument list is specified using either the *-shortflag* or the *--longflag* option.
 
-**-f** or **--file** _your input raster_
+**-hi** or **--host_index** _your input host index raster_
+
+**-img** or **--image** _your background satellite raster image for plotting_
 
 **-s** or **--start** _starting year for the simulation_
 
@@ -42,3 +44,7 @@ Each parameter in the argument list is specified using either the *-shortflag* o
 **-w** or **--wind** _account for wind direction for the pathogen spread YES, NO (default)_
 
 **-pd** or **--pwdir** _if you account for wind, what should the predominant wind direction be for the area? N (= North), NE (= Northeast), E (= East), etc._
+
+**-o** or **--output** _basename for output GRASS raster maps_
+
+**-n** or **--nth_output** _output every nth map_
