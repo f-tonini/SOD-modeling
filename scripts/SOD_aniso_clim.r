@@ -64,9 +64,7 @@ Nmax_rast <- raster(Nmax_rast)  #transform 'sp' obj to 'raster' obj
 res_win <- res(Nmax_rast)[1]
 
 #background satellite image for plotting
-bkr_img <- readRAST(opt$image)
-bkr_img <- raster(bkr_img)
-#bkr_img <- raster('./layers/ortho_5m_color.tif') 
+bkr_img <- raster(paste('./layers/', opt$image, sep='')) 
 
 #clone Smax raster to I (=infected trees) raster and spores (=number of spores)
 I_rast <- Nmax_rast 
@@ -143,13 +141,13 @@ windows(width = 10, height = 10, xpos=350, ypos=50, buffered = FALSE)
 #x11()     #use this on Linux (not tested!)
 
 #plot background image
-plot(bkg_img)
+plot(bkr_img)
 
 ## ----> MAIN SIMULATION LOOP (weekly time steps) <------
 for (tt in tstep){
   
   #split date string for raster time stamp
-  #split_date = unlist(strsplit(tt, '-'))
+  split_date = unlist(strsplit(tt, '-'))
   
   if (tt == tstep[1]) {
     
@@ -169,7 +167,7 @@ for (tt in tstep){
     #PLOT: overlay current plot on background image
     bks <- c(0, 0.25, 0.5, 0.75, 1)
     #colors <- c("yellow","gold","orange","red")
-    plot(I_rast, breaks=breakpoints, col=rev(heat.colors(length(bks)-1, alpha=.5)), main=tt, axes=F, legend=F, add=T)
+    plot(I_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=.5)), axes=F, legend=F, add=T)
     
     #WRITE TO FILE:
     I_rast_sp <- as(I_rast, 'SpatialGridDataFrame')
@@ -236,7 +234,7 @@ for (tt in tstep){
       #PLOT: overlay current plot on background image
       bks <- c(0, 0.25, 0.5, 0.75, 1)
       #colors <- c("yellow","gold","orange","red")
-      plot(I_rast, breaks=breakpoints, col=rev(heat.colors(length(bks)-1, alpha=.5)), main=tt, axes=F, legend=F, add=T)
+      plot(I_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=.5)), axes=F, legend=F, add=T)
       
       #WRITE TO FILE:
       I_rast_sp <- as(I_rast, 'SpatialGridDataFrame')
