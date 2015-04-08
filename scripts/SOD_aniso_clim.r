@@ -39,7 +39,6 @@ setwd(paste(sep="/", base_name, ".."))
 source('./scripts/myfunctions_SOD.r')
 sourceCpp("./scripts/myCppFunctions.cpp") #for C++ custom functions
 
-
 ###Input simulation parameters: #####
 option_list = list(
   make_option(c("-hi","--host_index"), action="store", default=NA, type='character', help="input host index raster map"),
@@ -64,6 +63,7 @@ Nmax_rast <- raster(Nmax_rast)  #transform 'sp' obj to 'raster' obj
 res_win <- res(Nmax_rast)[1]
 
 #background satellite image for plotting
+<<<<<<< HEAD
 bkr_img <- raster(paste('./layers/', opt$image, sep='')) 
 
 #clone Smax raster to I (=infected trees) raster and spores (=number of spores)
@@ -167,6 +167,7 @@ for (tt in tstep){
     #PLOT: overlay current plot on background image
     bks <- c(0, 0.25, 0.5, 0.75, 1)
     #colors <- c("yellow","gold","orange","red")
+<<<<<<< HEAD
     plot(I_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=.5)), axes=F, legend=F, add=T)
     
     #WRITE TO FILE:
