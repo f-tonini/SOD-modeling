@@ -33,6 +33,8 @@ Each parameter in the argument list is specified using either the *-shortflag* o
 
 **-hi** or **--host_index** _your input host index raster_
 
+**-src** or **--sources** _initial sources of infection raster map_
+
 **-img** or **--image** _your background satellite raster image for plotting_
 
 **-s** or **--start** _starting year for the simulation_
