@@ -156,7 +156,7 @@ for (tt in tstep){
     #PLOT: overlay current plot on background image
     bks <- c(0, 0.25, 0.5, 0.75, 1)
     #colors <- c("yellow","gold","orange","red")
-    image(I_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=.5)), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
+    image(I_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=1)), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
     boxed.labels(xpos, ypos, tt, bg="white", border=NA, font=2)
     
     #WRITE TO FILE:
