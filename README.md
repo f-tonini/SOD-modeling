@@ -20,13 +20,16 @@ Before running the code make sure to follow these steps:
 1. Install R (our code was tested with version 3.0.2) from [here] (http://www.r-project.org/)
 
 2. Open R and install the required packages using the statement:
-**install.packages(c("rgdal","raster","lubridate","CircStats","Rcpp","rgrass7", "optparse"))**
+**install.packages(c("rgdal","raster","lubridate","CircStats","Rcpp","rgrass7", "optparse", "plotrix")**
 
-3. Open GRASS GIS 7 and set up a location where to store/import your initial raster file. This step is necessary in order to (a) have a consistent projection across multiple files (all files within a GRASS location should be in the same coordinate system), and (b) make sure all the output raster files will be stores in the same GRASS location
-4. Set up the GRASS region to match the imported initial raster file using:
-  * **g.region raster = _your\_initial\_raster\_name_**
+3. Open GRASS GIS 7. Select a location from the main window (if none, create one), and a mapset (default is PERMANENT). Go to File >> Import raster data >> common format imports and make sure you import both any rasters to be called during program execution. For example, import the initial host index raster, and the initial sources of infection raster.
 
-5. Run the code by invoking the R script from the GRASS terminal prompt using:
+4. Open GRASS GIS 7 and set up a location + mapset where to store/import your initial raster files. This step is necessary in order to (a) have a consistent projection across multiple files (all files within a GRASS location should be in the same coordinate system), and (b) make sure all the output raster files will be stores in the same GRASS location. Select a location from the main window (if none, create one), and a mapset (default is PERMANENT). Go to File >> Import raster data >> common format imports and make sure you import both any rasters to be called during program execution. For example, import the initial host index raster, and the initial sources of infection raster.
+
+5. Open the GRASS terminal prompt. Set up the GRASS region to match the imported initial raster file using:
+  * **g.region raster = _your\_host_index\_raster\_name_**
+
+6. Run the code by invoking the R script from the GRASS terminal prompt using:
     * **Rscript _path\_to\_script_ --_arguments\_list_** 
     
 Each parameter in the argument list is specified using either the *-shortflag* or the *--longflag* option.
@@ -35,7 +38,7 @@ Each parameter in the argument list is specified using either the *-shortflag* o
 
 **-src** or **--sources** _initial sources of infection raster map_
 
-**-img** or **--image** _your background satellite raster image for plotting_
+**-img** or **--image** _your background satellite raster image for plotting (use extention after file name, e.g. image.tif)_
 
 **-s** or **--start** _starting year for the simulation_
 
