@@ -123,7 +123,7 @@ windows(width = 10, height = 10, xpos=350, ypos=50, buffered = FALSE)
 #x11()     #use this on Linux (not tested!)
 
 #plot background image
-plot(bkr_img)
+plot(bkr_img, xaxs = "i", yaxs = "i")
 
 #plot coordinates for plotting text:
 xpos <- (bbox(I_rast)[1,2] + bbox(I_rast)[1,1]) / 2
