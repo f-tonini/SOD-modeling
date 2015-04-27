@@ -222,8 +222,8 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
           col0 = col + round((dist * sin(theta)) / rs);
           
           
-          if (row0 < 1 || row0 >= nrow) continue;     //outside the region
-          if (col0 < 1 || col0 >= ncol) continue;     //outside the region
+          if (row0 < 0 || row0 >= nrow) continue;     //outside the region
+          if (col0 < 0 || col0 >= ncol) continue;     //outside the region
           
           //if susceptibles are present in current cell, calculate prob of infection
           if(S(row0, col0) > 0){  
@@ -320,8 +320,8 @@ List SporeDispCppWind(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, Numeric
           col0 = col + round((dist * sin(theta)) / rs);
           
           
-          if (row0 < 1 || row0 >= nrow) continue;     //outside the region
-          if (col0 < 1 || col0 >= ncol) continue;     //outside the region
+          if (row0 < 0 || row0 >= nrow) continue;     //outside the region
+          if (col0 < 0 || col0 >= ncol) continue;     //outside the region
           
           //if susceptibles are present in current cell, calculate prob of infection
           if(S(row0, col0) > 0){  
