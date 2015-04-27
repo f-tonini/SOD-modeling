@@ -183,7 +183,9 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
 
 // [[Rcpp::export]]
 List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
-                double rs, String rtype, double scale1){
+                double rs, String rtype, double scale1,
+                double scale2=NA_REAL,  //default values
+                double gamma=NA_REAL){  //default values
 
   // internal variables //
   int nrow = x.nrow(); 
@@ -198,6 +200,7 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
   //for Rcpp random numbers
   RNGScope scope;
   
+  Function sample("sample");
   //Function rcauchy("rcauchy");  
 
   //LOOP THROUGH EACH CELL of the input matrix 'x' (this should be the study area)
@@ -209,10 +212,18 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
         for(int sp = 1; (sp <= x(row,col)); sp++){
           
           //GENERATE DISTANCES:
-          if (rtype != "Cauchy") 
-            stop("The parameter rtype must be set to 'Cauchy'");
-          else 
+          if (rtype == "Cauchy") 
             dist = abs(R::rcauchy(0, scale1));
+          else if (rtype == "Cauchy Mixture")
+            if (gamma >= 1 || gamma <= 0) stop("The parameter gamma must range between (0-1)");
+            NumericVector fv = sample(Range(1, 2), 1, false, NumericVector::create(gamma, 1-gamma));
+            int f = fv[0];
+            if(f == 1) 
+              dist = abs(R::rcauchy(0, scale1));
+            else if (f==2) 
+              dist = abs(R::rcauchy(0, scale2));
+          else 
+            stop("The parameter rtype must be set to either 'Cauchy' or 'Cauchy Mixture'");
         
           //GENERATE ANGLES (using Uniform distribution):
           theta = R::runif(-PI, PI);
@@ -259,7 +270,9 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
 // [[Rcpp::export]]
 List SporeDispCppWind(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
                 double rs, String rtype, double scale1, 
-                String wdir, int kappa){
+                String wdir, int kappa,
+                double scale2=NA_REAL,  //default values
+                double gamma=NA_REAL){  //default values
 
   // internal variables //
   int nrow = x.nrow(); 
@@ -276,7 +289,7 @@ List SporeDispCppWind(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, Numeric
   
   //Function rcauchy("rcauchy");
   Function rvm("rvm");
-  
+  Function sample("sample");
 
   //LOOP THROUGH EACH CELL of the input matrix 'x' (this should be the study area)
   for (int row = 0; row < nrow; row++) {
@@ -287,10 +300,18 @@ List SporeDispCppWind(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, Numeric
         for(int sp = 1; (sp <= x(row,col)); sp++){
           
           //GENERATE DISTANCES:
-          if (rtype != "Cauchy") 
-            stop("The parameter rtype must be set to 'Cauchy'");
-          else 
+          if (rtype == "Cauchy") 
             dist = abs(R::rcauchy(0, scale1));
+          else if (rtype == "Cauchy Mixture")
+            if (gamma >= 1 || gamma <= 0) stop("The parameter gamma must range between (0-1)");
+            NumericVector fv = sample(Range(1, 2), 1, false, NumericVector::create(gamma, 1-gamma));
+            int f = fv[0];
+            if(f == 1) 
+              dist = abs(R::rcauchy(0, scale1));
+            else if (f==2) 
+              dist = abs(R::rcauchy(0, scale2));
+          else 
+            stop("The parameter rtype must be set to either 'Cauchy' or 'Cauchy Mixture'");
         
           //GENERATE ANGLES (using Von Mises distribution):
           if(kappa <= 0)  // kappa=concentration
