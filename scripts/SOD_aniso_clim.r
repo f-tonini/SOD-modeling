@@ -51,7 +51,8 @@ option_list = list(
   make_option(c("-w","--wind"), action="store", default="NO", type='character', help="spread using wind?"),
   make_option(c("-pd","--pwdir"), action="store", default=NA, type='character', help="predominant wind direction: N,NE,E,SE,S,SW,W,NW"),
   make_option(c("-o","--output"), action="store", default=NA, type='character', help="basename for output GRASS raster maps"),
-  make_option(c("-n","--nth_output"), action="store", default=1, type='integer', help="output every nth map")
+  make_option(c("-n","--nth_output"), action="store", default=1, type='integer', help="output every nth map"),
+  make_option(c("-scn","--scenario"), action="store", default=NA, type='character', help="future weather scenario")
 )
 
 opt = parse_args(OptionParser(option_list=option_list))
@@ -63,7 +64,6 @@ Nmax_rast <- raster(Nmax_rast)  #transform 'sp' obj to 'raster' obj
 
 #raster resolution
 res_win <- res(Nmax_rast)[1]
-
 
 ##Initial sources of infection:
 I_rast <- readRAST(opt$sources)
@@ -83,8 +83,6 @@ bkr_img <- raster(paste('./layers/', opt$image, sep=''))
 ##Start-End date: 
 start <- opt$start
 end <- opt$end
-#start <- arguments[2]
-#end <- arguments[3]
 
 if (start > end) stop('start date must precede end date!!')
 
@@ -98,16 +96,70 @@ formatting_str = paste("%0", floor( log10( length(tstep) ) ) + 1, "d", sep='')
 #grass date formatting
 months_names = c('jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec')
 
-
-#WEATHER SUITABILITY: read and stack weather suitability raster BEFORE running the simulation
+##WEATHER SUITABILITY: read and stack weather suitability raster BEFORE running the simulation
+#list of ALL weather layers
 lst <- dir('./layers/weather', pattern='\\.img$', full.names=T)
-Mlst <- lst[grep("_m", lst)]
-Mlst <- grep(paste(as.character(seq(start,end)), collapse="|"), Mlst, value=TRUE)  #use only the raster files matching the years of interest
-Clst <- lst[grep("_c", lst)]
-Clst <- grep(paste(as.character(seq(start,end)), collapse="|"), Clst, value=TRUE) #use only the raster files matching the years of interest
 
-Mstack <- stack(Mlst) #M = moisture; 
-Cstack <- stack(Clst) #C = temperature;
+#strip and read the last available historical year
+last_yr <- unlist(strsplit(basename(tail(lst, n=1)),'_'))[1]
+if (start > last_yr) stop('start simulation date needs to be within the range of available historical data')
+
+#sublist of weather coefficients
+Mlst <- lst[grep("_m", lst)] #M = moisture; 
+Clst <- lst[grep("_c", lst)] #C = temperature;
+
+#read csv table with ranked historical years
+weather_rank <- read.table('./layers/weather/WeatherRanked.csv', header = T, stringsAsFactors = F, sep=',')
+
+##future weather scenarios: if current simulation year is past the available data, use future climate 
+##(1) reading GCM projections from another raster stack  ##TODO!!!
+##(2) using available historical COMPLETE years (1990-2007), ranked by suitability
+
+#CASE 1: no future weather needed
+if(is.na(opt$scenario) & end <= last_yr){
+  Mlst <- grep(paste(as.character(seq(start,end)), collapse="|"), Mlst, value=TRUE)  #use only the raster files matching the years of interest
+  Clst <- grep(paste(as.character(seq(start,end)), collapse="|"), Clst, value=TRUE) #use only the raster files matching the years of interest  
+  Mstack <- stack(Mlst)  
+  Cstack <- stack(Clst) 
+#CASE 2: RANDOM future weather scenario  
+}else if(opt$scenario == 'random'){
+  if(end <= last_yr) stop('you specified a future weather scenario BUT the end year is not a future year!')
+  yrs <- sample(weather_rank[,1], size = end - last_yr, replace = T)
+  Mlst_1 <- grep(paste(as.character(seq(start,end)), collapse="|"), Mlst, value=TRUE)
+  Mlst_2 <- unlist(lapply(yrs, FUN=function(x){grep(as.character(x), Mlst, value=TRUE)}))
+  Mlst <- c(Mlst_1, Mlst_2)
+  Mstack <- stack(Mlst) 
+  Clst_1 <- grep(paste(as.character(seq(start,end)), collapse="|"), Clst, value=TRUE)
+  Clst_2 <- unlist(lapply(yrs, FUN=function(x){grep(as.character(x), Clst, value=TRUE)}))
+  Clst <- c(Clst_1, Clst_2)
+  Cstack <- stack(Clst) 
+#CASE 3: UPPER 50% (favorable) future weather scenario
+}else if(opt$scenario == 'favorable'){
+  yrs <- sample(weather_rank[1:9,1], size = end - last_yr, replace = T)
+  if(end <= last_yr) stop('you specified a future weather scenario BUT the end year is not a future year!')
+  yrs <- sample(weather_rank[,1], size = end - last_yr, replace = T)
+  Mlst_1 <- grep(paste(as.character(seq(start,end)), collapse="|"), Mlst, value=TRUE)
+  Mlst_2 <- unlist(lapply(yrs, FUN=function(x){grep(as.character(x), Mlst, value=TRUE)}))
+  Mlst <- c(Mlst_1, Mlst_2)
+  Mstack <- stack(Mlst) 
+  Clst_1 <- grep(paste(as.character(seq(start,end)), collapse="|"), Clst, value=TRUE)
+  Clst_2 <- unlist(lapply(yrs, FUN=function(x){grep(as.character(x), Clst, value=TRUE)}))
+  Clst <- c(Clst_1, Clst_2)
+  Cstack <- stack(Clst) 
+#CASE 4: LOWER 50% (unfavorable) future weather scenario
+}else{
+  yrs <- sample(weather_rank[10:18, 1], size = end - last_yr, replace = T)
+  if(end <= last_yr) stop('you specified a future weather scenario BUT the end year is not a future year!')
+  yrs <- sample(weather_rank[,1], size = end - last_yr, replace = T)
+  Mlst_1 <- grep(paste(as.character(seq(start,end)), collapse="|"), Mlst, value=TRUE)
+  Mlst_2 <- unlist(lapply(yrs, FUN=function(x){grep(as.character(x), Mlst, value=TRUE)}))
+  Mlst <- c(Mlst_1, Mlst_2)
+  Mstack <- stack(Mlst) 
+  Clst_1 <- grep(paste(as.character(seq(start,end)), collapse="|"), Clst, value=TRUE)
+  Clst_2 <- unlist(lapply(yrs, FUN=function(x){grep(as.character(x), Clst, value=TRUE)}))
+  Clst <- c(Clst_1, Clst_2)
+  Cstack <- stack(Clst) 
+}
 
 ##Seasonality: Do you want the spread to be limited to certain months?
 ss <- opt$seasonal   #'YES' or 'NO'
@@ -116,9 +168,8 @@ if (ss == 'YES') months_msk <- paste('0', 1:9, sep='') #1=January 9=September
 ##Wind: Do you want the spread to be affected by wind?
 if (!(opt$wind %in% c('YES', 'NO'))) stop('You must specify whether you want spread by wind or not: use either YES or NO')
 
-
 #open window screen
-windows(width = 10, height = 10, xpos=350, ypos=50, buffered = FALSE)
+windows(width = 10, height = 10, xpos = 350, ypos = 50, buffered = FALSE)
 #quartz()  #use this on Mac OSX
 #x11()     #use this on Linux (not tested!)
 
