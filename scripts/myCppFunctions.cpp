@@ -214,14 +214,15 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
           //GENERATE DISTANCES:
           if (rtype == "Cauchy") 
             dist = abs(R::rcauchy(0, scale1));
-          else if (rtype == "Cauchy Mixture")
+          else if (rtype == "Cauchy Mixture"){
             if (gamma >= 1 || gamma <= 0) stop("The parameter gamma must range between (0-1)");
             NumericVector fv = sample(Range(1, 2), 1, false, NumericVector::create(gamma, 1-gamma));
             int f = fv[0];
             if(f == 1) 
               dist = abs(R::rcauchy(0, scale1));
-            else if (f==2) 
+            else
               dist = abs(R::rcauchy(0, scale2));
+          }
           else 
             stop("The parameter rtype must be set to either 'Cauchy' or 'Cauchy Mixture'");
         
@@ -300,14 +301,15 @@ List SporeDispCpp_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_QA, In
           //GENERATE DISTANCES:
           if (rtype == "Cauchy") 
             dist = abs(R::rcauchy(0, scale1));
-          else if (rtype == "Cauchy Mixture")
+          else if (rtype == "Cauchy Mixture"){
             if (gamma >= 1 || gamma <= 0) stop("The parameter gamma must range between (0-1)");
             NumericVector fv = sample(Range(1, 2), 1, false, NumericVector::create(gamma, 1-gamma));
             int f = fv[0];
             if(f == 1) 
               dist = abs(R::rcauchy(0, scale1));
-            else if (f==2) 
+            else 
               dist = abs(R::rcauchy(0, scale2));
+          }
           else 
             stop("The parameter rtype must be set to either 'Cauchy' or 'Cauchy Mixture'");
         
@@ -425,14 +427,15 @@ List SporeDispCppWind(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, Numeric
           //GENERATE DISTANCES:
           if (rtype == "Cauchy") 
             dist = abs(R::rcauchy(0, scale1));
-          else if (rtype == "Cauchy Mixture")
+          else if (rtype == "Cauchy Mixture"){
             if (gamma >= 1 || gamma <= 0) stop("The parameter gamma must range between (0-1)");
             NumericVector fv = sample(Range(1, 2), 1, false, NumericVector::create(gamma, 1-gamma));
             int f = fv[0];
             if(f == 1) 
               dist = abs(R::rcauchy(0, scale1));
-            else if (f==2) 
+            else 
               dist = abs(R::rcauchy(0, scale2));
+          }
           else 
             stop("The parameter rtype must be set to either 'Cauchy' or 'Cauchy Mixture'");
         
@@ -533,14 +536,15 @@ List SporeDispCppWind_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_QA
           //GENERATE DISTANCES:
           if (rtype == "Cauchy") 
             dist = abs(R::rcauchy(0, scale1));
-          else if (rtype == "Cauchy Mixture")
+          else if (rtype == "Cauchy Mixture"){
             if (gamma >= 1 || gamma <= 0) stop("The parameter gamma must range between (0-1)");
             NumericVector fv = sample(Range(1, 2), 1, false, NumericVector::create(gamma, 1-gamma));
             int f = fv[0];
             if(f == 1) 
               dist = abs(R::rcauchy(0, scale1));
-            else if (f==2) 
+            else 
               dist = abs(R::rcauchy(0, scale2));
+          }
           else 
             stop("The parameter rtype must be set to either 'Cauchy' or 'Cauchy Mixture'");
         
