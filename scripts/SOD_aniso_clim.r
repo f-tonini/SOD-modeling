@@ -37,7 +37,7 @@ setwd(paste(sep="/", base_name, ".."))
 
 ##Use an external source file w/ all modules (functions) used within this script. 
 ##Use FULL PATH if source file is not in the same folder w/ this script
-source('./scripts/myfunctions_SOD.r')
+#source('./scripts/myfunctions_SOD.r')
 sourceCpp("./scripts/myCppFunctions.cpp") #for C++ custom functions
 
 ###Input simulation parameters: #####
@@ -45,6 +45,7 @@ option_list = list(
   make_option(c("-u","--umca"), action="store", default=NA, type='character', help="input bay laurel (UMCA) raster map"),
   make_option(c("-qg","--quag"), action="store", default=NA, type='character', help="input coast live oak (QUAG) raster map"),
   make_option(c("-qk","--quke"), action="store", default=NA, type='character', help="input black oak (QUKE) raster map"),
+  make_option(c("-lvt","--livetree"), action="store", default=NA, type='character', help="input live tree (all) raster map"),
   make_option(c("-src","--sources"), action="store", default=NA, type='character', help="initial sources of infection raster map"),
   make_option(c("-img","--image"), action="store", default=NA, type='character', help="background satellite raster image for plotting"),
   make_option(c("-s","--start"), action="store", default=NA, type='integer', help="start year"),
@@ -69,7 +70,11 @@ quag_rast <- readRAST(opt$quag)
 quag_rast <- round(raster(quag_rast))  
 #----> QUAG
 quke_rast <- readRAST(opt$quke)
-quke_rast <- round(raster(quke_rast)) 
+quke_rast <- round(raster(quke_rast))
+#----> All live trees
+livetree_rast <- readRAST(opt$livetree)
+livetree_rast <- round(raster(livetree_rast))
+livetree_rast <- livetree_rast - (umca_rast + quag_rast + quke_rast)
 
 #overall oak host abundance raster
 oaks_rast <- quag_rast + quke_rast
@@ -81,16 +86,27 @@ res_win <- res(umca_rast)[1]
 I_umca_rast <- readRAST(opt$sources)
 I_umca_rast <- raster(I_umca_rast) 
 
+#initialize zero-infection rasters for oaks:
+I_quag_rast <- I_umca_rast  ##clone raster
+I_quag_rast[] <- 0          ##init to 0 
+I_quke_rast <- I_umca_rast  ##clone raster
+I_quke_rast[] <- 0          ##init to 0
+
+#overall oak infection raster:
+I_oaks_rast <- I_quag_rast + I_quke_rast
+
 #Susceptibles = Current Abundance - Infected (I_rast)
-S_umca_rast <- umca_rast - I_umca_rast    
+S_umca_rast <- umca_rast - I_umca_rast
 
 #integer matrix with susceptible and infected
 susceptible_umca <- as.matrix(S_umca_rast)
 infected_umca <- as.matrix(I_umca_rast)
 susceptible_quag <- as.matrix(quag_rast)
-infected_quag <- as.matrix(0, nrow=nrow(quag_rast), ncol=ncol(quag_rast))
+infected_quag <- as.matrix(I_quag_rast)
 susceptible_quke <- as.matrix(quke_rast)
-infected_quke <- as.matrix(0, nrow=nrow(quke_rast), ncol=ncol(quke_rast))
+infected_quke <- as.matrix(I_quke_rast)
+#live tree (all) matrix
+livetree_matr <- as.matrix(livetree_rast)
 
 ##background satellite image for plotting
 bkr_img <- raster(paste('./layers/', opt$image, sep='')) 
@@ -116,7 +132,7 @@ months_names = c('jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 
 lst <- dir('./layers/weather', pattern='\\.img$', full.names=T)
 
 #strip and read the last available historical year
-last_yr <- unlist(strsplit(basename(tail(lst, n=1)),'_'))[1]
+last_yr <- as.numeric(unlist(strsplit(basename(tail(lst, n=1)),'_'))[1])
 if (start > last_yr) stop('start simulation date needs to be within the range of available historical data')
 
 #sublist of weather coefficients
@@ -208,9 +224,7 @@ for (tt in tstep){
     
     if(!any(susceptible_quag > 0) & !any(susceptible_quke > 0)) stop('Simulation ended. There are no more susceptible oaks on the landscape!')
     
-    ##CALCULATE OUTPUT TO PLOT:
-    I_oaks_rast <- I_quag_rast + I_quke_rast
-    
+    ##CALCULATE OUTPUT TO PLOT: 
     # 1) values as % infected
     I_oaks_rast[] <- ifelse(I_oaks_rast[] == 0, NA, round(I_oaks_rast[]/oaks_rast[], 1))
     
@@ -262,30 +276,26 @@ for (tt in tstep){
       #Check if predominant wind direction has been specified correctly:
       if (!(opt$pwdir %in% c('N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'))) stop('A predominant wind direction must be specified: N, NE, E, SE, S, SW, W, NW')
       out <- SporeDispCppWind_mh(spores_mat, S_UM=susceptible_umca, S_QA=susceptible_quag, S_QK=susceptible_quke, 
-                                I_UM=infected_umca, I_QA=infected_quag, I_QK=infected_quke, W, rs=res_win, rtype='Cauchy', scale1=20.57, wdir=opt$pwdir, kappa=2)
+                                I_UM=infected_umca, I_QA=infected_quag, I_QK=infected_quke, LVT=livetree_matr, W, rs=res_win, rtype='Cauchy', scale1=20.57, wdir=opt$pwdir, kappa=2)
     
     }else{
       out <- SporeDispCpp_mh(spores_mat, S_UM=susceptible_umca, S_QA=susceptible_quag, S_QK=susceptible_quke, 
-                             I_UM=infected_umca, I_QA=infected_quag, I_QK=infected_quke, W, rs=res_win, rtype='Cauchy', scale1=20.57) ##TO DO
+                             I_UM=infected_umca, I_QA=infected_quag, I_QK=infected_quke, LVT=livetree_matr, W, rs=res_win, rtype='Cauchy', scale1=20.57) ##TO DO
     }  
     
     #update R matrices:
     #UMCA
-    susceptible_UM <- out$S_UM 
-    infected_UM <- out$I_UM 
+    susceptible_umca <- out$S_UM 
+    infected_umca <- out$I_UM 
     #QUAG
-    susceptible_QA <- out$S_QA 
-    infected_QA <- out$I_QA
+    susceptible_quag <- out$S_QA 
+    infected_quag <- out$I_QA
     #QUKE
-    susceptible_QK <- out$S_QK 
-    infected_QK <- out$I_QK 
-    
-    #save matrix into raster obj
-    I_quag_rast[] <- infected_QA
-    I_quke_rast[] <- infected_QK
+    susceptible_quke <- out$S_QK 
+    infected_quke <- out$I_QK 
     
     ##CALCULATE OUTPUT TO PLOT:
-    I_oaks_rast <- I_quag_rast + I_quke_rast
+    I_oaks_rast[] <- infected_quag + infected_quke
     
     # 1) values as % infected
     I_oaks_rast[] <- ifelse(I_oaks_rast[] == 0, NA, round(I_oaks_rast[]/oaks_rast[], 1))
