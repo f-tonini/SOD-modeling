@@ -269,7 +269,7 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
 
 // [[Rcpp::export]]
 List SporeDispCpp_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_QA, IntegerMatrix S_QK, 
-                IntegerMatrix I_UM, IntegerMatrix I_QA, IntegerMatrix I_QK, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
+                IntegerMatrix I_UM, IntegerMatrix I_QA, IntegerMatrix I_QK, IntegerMatrix LVT, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
                 double rs, String rtype, double scale1,
                 double scale2=NA_REAL,  //default values
                 double gamma=NA_REAL){  //default values
@@ -324,21 +324,24 @@ List SporeDispCpp_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_QA, In
           if (row0 < 0 || row0 >= nrow) continue;     //outside the region
           if (col0 < 0 || col0 >= ncol) continue;     //outside the region
           
-          //if distance is within 100m challenge all SOD hosts, otherwise challenge UMCA only
-          if (dist <= 100){
+          //if distance is within same pixel challenge all SOD hosts, otherwise challenge UMCA only
+          if (row0 == row && col0 == col){
+            
             //if susceptible hosts are present in cell, calculate prob of infection
             if(S_UM(row0, col0) > 0 || S_QA(row0, col0) > 0 || S_QK(row0, col0) > 0){
-              PropS = double(S_UM(row0, col0) + S_QA(row0, col0) + S_QK(row0, col0)) / (S_UM(row0, col0) + S_QA(row0, col0) + S_QK(row0, col0) + 
-                                                                                        I_UM(row0, col0) + I_QA(row0, col0) + I_QK(row0, col0));
+  		        
+              double hostTot = double(S_UM(row0, col0) + S_QA(row0, col0) + S_QK(row0, col0) + I_UM(row0, col0) + I_QA(row0, col0) + I_QK(row0, col0));
+			        PropS = double(S_UM(row0, col0) + S_QA(row0, col0) + S_QK(row0, col0)) / (hostTot + LVT(row0, col0));              
+              
               double U = R::runif(0,1);
               double Prob = PropS * W(row0, col0); //weather suitability affects prob success!
 
               //if U < Prob then one host will become infected
               if (U < Prob){
                 
-                double PropS_UM = double(S_UM(row0, col0)) / (S_UM(row0, col0) + I_UM(row0, col0)); //fractions of susceptible host in cell
-                double PropS_QA = double(S_QA(row0, col0)) / (S_QA(row0, col0) + I_QA(row0, col0));
-                double PropS_QK = double(S_QK(row0, col0)) / (S_QK(row0, col0) + I_QK(row0, col0));
+                double PropS_UM = double(S_UM(row0, col0)) / (S_UM(row0, col0) + S_QA(row0, col0) + S_QK(row0, col0)); //fractions of susceptible host in cell
+                double PropS_QA = double(S_QA(row0, col0)) / (S_UM(row0, col0) + S_QA(row0, col0) + S_QK(row0, col0));
+                double PropS_QK = double(S_QK(row0, col0)) / (S_UM(row0, col0) + S_QA(row0, col0) + S_QK(row0, col0));
                 
                 //sample which of the three hosts will be infected
                 NumericVector sv = sample(NumericVector::create(1, 2, 3), 1, false, NumericVector::create(PropS_UM, PropS_QA, PropS_QK));
@@ -358,6 +361,7 @@ List SporeDispCpp_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_QA, In
             }//ENF IF          
           
           }else{
+
             //if UMCA-only susceptibles are present in cell, calculate prob of infection
             if(S_UM(row0, col0) > 0){
               double PropS_UM = double(S_UM(row0, col0)) / (S_UM(row0, col0) + I_UM(row0, col0)); //fractions of given host in cell
@@ -502,7 +506,7 @@ List SporeDispCppWind(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, Numeric
 
 // [[Rcpp::export]]
 List SporeDispCppWind_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_QA, IntegerMatrix S_QK, 
-                IntegerMatrix I_UM, IntegerMatrix I_QA, IntegerMatrix I_QK, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
+                IntegerMatrix I_UM, IntegerMatrix I_QA, IntegerMatrix I_QK, IntegerMatrix LVT, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
                 double rs, String rtype, double scale1, 
                 String wdir, int kappa,
                 double scale2=NA_REAL,  //default values
@@ -578,21 +582,24 @@ List SporeDispCppWind_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_QA
           if (row0 < 0 || row0 >= nrow) continue;     //outside the region
           if (col0 < 0 || col0 >= ncol) continue;     //outside the region
           
-          //if distance is within 100m challenge all SOD hosts, otherwise challenge UMCA only
-          if (dist <= 100){
+          //if distance is within same pixel challenge all SOD hosts, otherwise challenge UMCA only
+          if (row0 == row && col0 == col){
+            
             //if susceptible hosts are present in cell, calculate prob of infection
             if(S_UM(row0, col0) > 0 || S_QA(row0, col0) > 0 || S_QK(row0, col0) > 0){
-              PropS = double(S_UM(row0, col0) + S_QA(row0, col0) + S_QK(row0, col0)) / (S_UM(row0, col0) + S_QA(row0, col0) + S_QK(row0, col0) + 
-                                                                                        I_UM(row0, col0) + I_QA(row0, col0) + I_QK(row0, col0));
+    	        
+              double hostTot = double(S_UM(row0, col0) + S_QA(row0, col0) + S_QK(row0, col0) + I_UM(row0, col0) + I_QA(row0, col0) + I_QK(row0, col0));
+			        PropS = double(S_UM(row0, col0) + S_QA(row0, col0) + S_QK(row0, col0)) / (hostTot + LVT(row0, col0));              
+              
               double U = R::runif(0,1);
               double Prob = PropS * W(row0, col0); //weather suitability affects prob success!
 
               //if U < Prob then one host will become infected
               if (U < Prob){
                 
-                double PropS_UM = double(S_UM(row0, col0)) / (S_UM(row0, col0) + I_UM(row0, col0)); //fractions of susceptible host in cell
-                double PropS_QA = double(S_QA(row0, col0)) / (S_QA(row0, col0) + I_QA(row0, col0));
-                double PropS_QK = double(S_QK(row0, col0)) / (S_QK(row0, col0) + I_QK(row0, col0));
+                double PropS_UM = double(S_UM(row0, col0)) / (S_UM(row0, col0) + S_QA(row0, col0) + S_QK(row0, col0)); //fractions of susceptible host in cell
+                double PropS_QA = double(S_QA(row0, col0)) / (S_UM(row0, col0) + S_QA(row0, col0) + S_QK(row0, col0));
+                double PropS_QK = double(S_QK(row0, col0)) / (S_UM(row0, col0) + S_QA(row0, col0) + S_QK(row0, col0));
                 
                 //sample which of the three hosts will be infected
                 NumericVector sv = sample(NumericVector::create(1, 2, 3), 1, false, NumericVector::create(PropS_UM, PropS_QA, PropS_QK));
@@ -612,6 +619,7 @@ List SporeDispCppWind_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_QA
             }//ENF IF          
           
           }else{
+
             //if UMCA-only susceptibles are present in cell, calculate prob of infection
             if(S_UM(row0, col0) > 0){
               double PropS_UM = double(S_UM(row0, col0)) / (S_UM(row0, col0) + I_UM(row0, col0)); //fractions of given host in cell
@@ -623,7 +631,7 @@ List SporeDispCppWind_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_QA
                 S_UM(row0, col0) = S_UM(row0, col0) - 1; //update susceptible UMCA             
               }  
             }//END IF
-          }//ENF IF DISTANCE CHECK          
+          }//ENF IF DISTANCE CHECK  
         
         }//END LOOP OVER ALL SPORES IN CURRENT CELL GRID
        
