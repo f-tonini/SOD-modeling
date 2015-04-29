@@ -63,13 +63,13 @@ opt = parse_args(OptionParser(option_list=option_list))
 ##Input rasters: abundance (tree density per hectare)
 #----> UMCA
 umca_rast <- readRAST(opt$umca)
-umca_rast <- raster(umca_rast)  #transform 'sp' obj to 'raster' obj
+umca_rast <- round(raster(umca_rast))  #transform 'sp' obj to 'raster' obj
 #----> QUAG
 quag_rast <- readRAST(opt$quag)
-quag_rast <- raster(quag_rast)  
+quag_rast <- round(raster(quag_rast))  
 #----> QUAG
 quke_rast <- readRAST(opt$quke)
-quke_rast <- raster(quke_rast) 
+quke_rast <- round(raster(quke_rast)) 
 
 #overall oak host abundance raster
 oaks_rast <- quag_rast + quke_rast
@@ -81,24 +81,16 @@ res_win <- res(umca_rast)[1]
 I_umca_rast <- readRAST(opt$sources)
 I_umca_rast <- raster(I_umca_rast) 
 
-I_quag_rast <- readRAST(opt$sources)
-I_quag_rast <- raster(I_quag_rast)
-
-I_quke_rast <- readRAST(opt$sources)
-I_quke_rast <- raster(I_quke_rast)
-
 #Susceptibles = Current Abundance - Infected (I_rast)
-S_umca_rast <- umca_rast - I_umca_rast   
-S_quag_rast <- quag_rast - I_quag_rast   
-S_quke_rast <- quke_rast - I_quke_rast   
+S_umca_rast <- umca_rast - I_umca_rast    
 
 #integer matrix with susceptible and infected
 susceptible_umca <- as.matrix(S_umca_rast)
 infected_umca <- as.matrix(I_umca_rast)
-susceptible_quag <- as.matrix(S_quag_rast)
-infected_quag <- as.matrix(I_quag_rast)
-susceptible_quke <- as.matrix(S_quke_rast)
-infected_quke <- as.matrix(I_quke_rast)
+susceptible_quag <- as.matrix(quag_rast)
+infected_quag <- as.matrix(0, nrow=nrow(quag_rast), ncol=ncol(quag_rast))
+susceptible_quke <- as.matrix(quke_rast)
+infected_quke <- as.matrix(0, nrow=nrow(quke_rast), ncol=ncol(quke_rast))
 
 ##background satellite image for plotting
 bkr_img <- raster(paste('./layers/', opt$image, sep='')) 
@@ -200,8 +192,8 @@ windows(width = 10, height = 10, xpos = 350, ypos = 50, buffered = FALSE)
 plot(bkr_img, xaxs = "i", yaxs = "i")
 
 #plot coordinates for plotting text:
-xpos <- (bbox(I_rast)[1,2] + bbox(I_rast)[1,1]) / 2
-ypos <- bbox(I_rast)[2,2] - 150
+xpos <- (bbox(I_umca_rast)[1,2] + bbox(I_umca_rast)[1,1]) / 2
+ypos <- bbox(I_umca_rast)[2,2] - 150
 
 #time counter to access pos index in weather raster stacks
 cnt <- 0 
@@ -269,12 +261,12 @@ for (tt in tstep){
       
       #Check if predominant wind direction has been specified correctly:
       if (!(opt$pwdir %in% c('N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'))) stop('A predominant wind direction must be specified: N, NE, E, SE, S, SW, W, NW')
-      out <- SporeDispCppWind_mh(spores_mat, S_UM=susceptible_UM, S_QA=susceptible_QA, S_QK=susceptible_QK, 
-                                I_UM=infected_UM, I_QA=infected_QA, I_QK=infected_QK, W, rs=res_win, rtype='Cauchy', scale1=20.57, wdir=opt$pwdir, kappa=2)
+      out <- SporeDispCppWind_mh(spores_mat, S_UM=susceptible_umca, S_QA=susceptible_quag, S_QK=susceptible_quke, 
+                                I_UM=infected_umca, I_QA=infected_quag, I_QK=infected_quke, W, rs=res_win, rtype='Cauchy', scale1=20.57, wdir=opt$pwdir, kappa=2)
     
     }else{
-      out <- SporeDispCpp_mh(spores_mat, S_UM=susceptible_UM, S_QA=susceptible_QA, S_QK=susceptible_QK, 
-                             I_UM=infected_UM, I_QA=infected_QA, I_QK=infected_QK, W, rs=res_win, rtype='Cauchy', scale1=20.57) ##TO DO
+      out <- SporeDispCpp_mh(spores_mat, S_UM=susceptible_umca, S_QA=susceptible_quag, S_QK=susceptible_quke, 
+                             I_UM=infected_umca, I_QA=infected_quag, I_QK=infected_quke, W, rs=res_win, rtype='Cauchy', scale1=20.57) ##TO DO
     }  
     
     #update R matrices:
