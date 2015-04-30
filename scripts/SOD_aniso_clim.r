@@ -37,14 +37,13 @@ setwd(paste(sep="/", base_name, ".."))
 
 ##Use an external source file w/ all modules (functions) used within this script. 
 ##Use FULL PATH if source file is not in the same folder w/ this script
-#source('./scripts/myfunctions_SOD.r')
+source('./scripts/myfunctions_SOD.r')
 sourceCpp("./scripts/myCppFunctions.cpp") #for C++ custom functions
 
 ###Input simulation parameters: #####
 option_list = list(
   make_option(c("-u","--umca"), action="store", default=NA, type='character', help="input bay laurel (UMCA) raster map"),
-  make_option(c("-qg","--quag"), action="store", default=NA, type='character', help="input coast live oak (QUAG) raster map"),
-  make_option(c("-qk","--quke"), action="store", default=NA, type='character', help="input black oak (QUKE) raster map"),
+  make_option(c("-ok","--oaks"), action="store", default=NA, type='character', help="input SOD-oaks raster map"),  
   make_option(c("-lvt","--livetree"), action="store", default=NA, type='character', help="input live tree (all) raster map"),
   make_option(c("-src","--sources"), action="store", default=NA, type='character', help="initial sources of infection raster map"),
   make_option(c("-img","--image"), action="store", default=NA, type='character', help="background satellite raster image for plotting"),
@@ -65,19 +64,14 @@ opt = parse_args(OptionParser(option_list=option_list))
 #----> UMCA
 umca_rast <- readRAST(opt$umca)
 umca_rast <- round(raster(umca_rast))  #transform 'sp' obj to 'raster' obj
-#----> QUAG
-quag_rast <- readRAST(opt$quag)
-quag_rast <- round(raster(quag_rast))  
-#----> QUAG
-quke_rast <- readRAST(opt$quke)
-quke_rast <- round(raster(quke_rast))
+#----> ALL SOD-affected oaks
+oaks_rast <- readRAST(opt$oaks)
+oaks_rast <- round(raster(oaks_rast))  
 #----> All live trees
-livetree_rast <- readRAST(opt$livetree)
-livetree_rast <- round(raster(livetree_rast))
-livetree_rast <- livetree_rast - (umca_rast + quag_rast + quke_rast)
-
-#overall oak host abundance raster
-oaks_rast <- quag_rast + quke_rast
+lvtree_rast <- readRAST(opt$livetree)
+lvtree_rast <- round(raster(lvtree_rast))
+#calculate trees that are SOD-immune:
+immune_rast <- lvtree_rast - (umca_rast + oaks_rast) 
 
 #raster resolution
 res_win <- res(umca_rast)[1]
@@ -87,26 +81,18 @@ I_umca_rast <- readRAST(opt$sources)
 I_umca_rast <- raster(I_umca_rast) 
 
 #initialize zero-infection rasters for oaks:
-I_quag_rast <- I_umca_rast  ##clone raster
-I_quag_rast[] <- 0          ##init to 0 
-I_quke_rast <- I_umca_rast  ##clone raster
-I_quke_rast[] <- 0          ##init to 0
+I_oaks_rast <- I_umca_rast  ##clone raster
+I_oaks_rast[] <- 0          ##init to 0 
 
-#overall oak infection raster:
-I_oaks_rast <- I_quag_rast + I_quke_rast
-
-#Susceptibles = Current Abundance - Infected (I_rast)
+#Susceptibles UMCA = Current Abundance - Infected (I_rast)
 S_umca_rast <- umca_rast - I_umca_rast
 
 #integer matrix with susceptible and infected
 susceptible_umca <- as.matrix(S_umca_rast)
 infected_umca <- as.matrix(I_umca_rast)
-susceptible_quag <- as.matrix(quag_rast)
-infected_quag <- as.matrix(I_quag_rast)
-susceptible_quke <- as.matrix(quke_rast)
-infected_quke <- as.matrix(I_quke_rast)
-#live tree (all) matrix
-livetree_matr <- as.matrix(livetree_rast)
+susceptible_oaks <- as.matrix(oaks_rast)
+infected_oaks <- as.matrix(I_oaks_rast)
+immune_matr <- as.matrix(immune_rast)
 
 ##background satellite image for plotting
 bkr_img <- raster(paste('./layers/', opt$image, sep='')) 
@@ -222,7 +208,7 @@ for (tt in tstep){
   
   if (tt == tstep[1]) {
     
-    if(!any(susceptible_quag > 0) & !any(susceptible_quke > 0)) stop('Simulation ended. There are no more susceptible oaks on the landscape!')
+    if(!any(susceptible_oaks > 0)) stop('Simulation ended. All oaks are infected!')
     
     ##CALCULATE OUTPUT TO PLOT: 
     # 1) values as % infected
@@ -237,8 +223,9 @@ for (tt in tstep){
     
     #PLOT: overlay current plot on background image
     bks <- c(0, 0.25, 0.5, 0.75, 1)
-    #colors <- c("yellow","gold","orange","red")
-    image(I_oaks_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=1)), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
+    my_palette <- colorRampPalette(c("limegreen", "yellow1", "orange", "red1"))(n = 4)
+    #image(I_oaks_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=1)), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
+    image(I_oaks_rast, breaks=bks, col=addalpha(my_palette, 1), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
     boxed.labels(xpos, ypos, tt, bg="white", border=NA, font=2)
     
     #WRITE TO FILE:
@@ -253,8 +240,8 @@ for (tt in tstep){
   }else{
     
     
-    #check if there are any susceptible trees left on the landscape (IF NOT continue LOOP till the end)
-    if(!any(susceptible_quag > 0) & !any(susceptible_quke > 0)) break
+    #check if there are any susceptible oaks left on the landscape (IF NOT continue LOOP till the end)
+    if(!any(susceptible_oaks > 0)) break
     
     #update week counter
     cnt <- cnt + 1
@@ -275,27 +262,24 @@ for (tt in tstep){
       
       #Check if predominant wind direction has been specified correctly:
       if (!(opt$pwdir %in% c('N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'))) stop('A predominant wind direction must be specified: N, NE, E, SE, S, SW, W, NW')
-      out <- SporeDispCppWind_mh(spores_mat, S_UM=susceptible_umca, S_QA=susceptible_quag, S_QK=susceptible_quke, 
-                                I_UM=infected_umca, I_QA=infected_quag, I_QK=infected_quke, LVT=livetree_matr, W, rs=res_win, rtype='Cauchy', scale1=20.57, wdir=opt$pwdir, kappa=2)
+      out <- SporeDispCppWind_mh(spores_mat, S_UM=susceptible_umca, S_OK=susceptible_oaks, I_UM=infected_umca, I_OK=infected_oaks, IMM=immune_matr, 
+                                 W, rs=res_win, rtype='Cauchy', scale1=20.57, wdir=opt$pwdir, kappa=2)
     
     }else{
-      out <- SporeDispCpp_mh(spores_mat, S_UM=susceptible_umca, S_QA=susceptible_quag, S_QK=susceptible_quke, 
-                             I_UM=infected_umca, I_QA=infected_quag, I_QK=infected_quke, LVT=livetree_matr, W, rs=res_win, rtype='Cauchy', scale1=20.57) ##TO DO
+      out <- SporeDispCpp_mh(spores_mat, S_UM=susceptible_umca, S_OK=susceptible_oaks, I_UM=infected_umca, I_OK=infected_oaks, IMM=immune_matr,
+                             W, rs=res_win, rtype='Cauchy', scale1=20.57) ##TO DO
     }  
     
     #update R matrices:
     #UMCA
     susceptible_umca <- out$S_UM 
     infected_umca <- out$I_UM 
-    #QUAG
-    susceptible_quag <- out$S_QA 
-    infected_quag <- out$I_QA
-    #QUKE
-    susceptible_quke <- out$S_QK 
-    infected_quke <- out$I_QK 
+    #oaks
+    susceptible_oaks <- out$S_OK 
+    infected_oaks <- out$I_OK
     
     ##CALCULATE OUTPUT TO PLOT:
-    I_oaks_rast[] <- infected_quag + infected_quke
+    I_oaks_rast[] <- infected_oaks
     
     # 1) values as % infected
     I_oaks_rast[] <- ifelse(I_oaks_rast[] == 0, NA, round(I_oaks_rast[]/oaks_rast[], 1))
@@ -311,8 +295,9 @@ for (tt in tstep){
       
       #PLOT: overlay current plot on background image
       bks <- c(0, 0.25, 0.5, 0.75, 1)
-      #colors <- c("yellow","gold","orange","red")
-      image(I_oaks_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=.5)), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
+      my_palette <- colorRampPalette(c("limegreen", "yellow1", "orange", "red1"))(n = 4)
+      #image(I_oaks_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=1)), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
+      image(I_oaks_rast, breaks=bks, col=addalpha(my_palette, .5), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
       boxed.labels(xpos, ypos, tt, bg="white", border=NA, font=2)
       
       #WRITE TO FILE:
