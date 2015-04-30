@@ -360,7 +360,7 @@ List SporeDispCpp_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_OK, In
 
             //if UMCA-only susceptibles are present in cell, calculate prob of infection
             if(S_UM(row0, col0) > 0){
-              double PropS_UM = double(S_UM(row0, col0)) / (S_UM(row0, col0) + I_UM(row0, col0)); //fractions of given host in cell
+              double PropS_UM = double(S_UM(row0, col0)) / (S_UM(row0, col0) + I_UM(row0, col0) + IMM(row0, col0)); //fractions of given host in cell
               double U = R::runif(0,1);
               double Prob = PropS_UM * W(row0, col0); //weather suitability affects prob success!
               //if U < Prob then one host will become infected
@@ -612,7 +612,7 @@ List SporeDispCppWind_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_OK
 
             //if UMCA-only susceptibles are present in cell, calculate prob of infection
             if(S_UM(row0, col0) > 0){
-              double PropS_UM = double(S_UM(row0, col0)) / (S_UM(row0, col0) + I_UM(row0, col0)); //fractions of given host in cell
+              double PropS_UM = double(S_UM(row0, col0)) / (S_UM(row0, col0) + I_UM(row0, col0) + IMM(row0, col0)); //fractions of given host in cell
               double U = R::runif(0,1);
               double Prob = PropS_UM * W(row0, col0); //weather suitability affects prob success!
               //if U < Prob then one host will become infected
