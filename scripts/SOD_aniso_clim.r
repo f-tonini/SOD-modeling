@@ -223,7 +223,7 @@ for (tt in tstep){
     
     #PLOT: overlay current plot on background image
     bks <- c(0, 0.25, 0.5, 0.75, 1)
-    my_palette <- colorRampPalette(c("limegreen", "yellow1", "orange", "red1"))(n = 4)
+    my_palette <- colorRampPalette(c("springgreen", "yellow1", "orange", "red1"))(n = 4)
     #image(I_oaks_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=1)), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
     image(I_oaks_rast, breaks=bks, col=addalpha(my_palette, 1), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
     boxed.labels(xpos, ypos, tt, bg="white", border=NA, font=2)
@@ -295,7 +295,7 @@ for (tt in tstep){
       
       #PLOT: overlay current plot on background image
       bks <- c(0, 0.25, 0.5, 0.75, 1)
-      my_palette <- colorRampPalette(c("limegreen", "yellow1", "orange", "red1"))(n = 4)
+      my_palette <- colorRampPalette(c("springgreen", "yellow1", "orange", "red1"))(n = 4)
       #image(I_oaks_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=1)), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
       image(I_oaks_rast, breaks=bks, col=addalpha(my_palette, .5), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
       boxed.labels(xpos, ypos, tt, bg="white", border=NA, font=2)
