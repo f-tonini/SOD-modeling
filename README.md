@@ -34,6 +34,12 @@ Before running the code make sure to follow these steps:
     
 Each parameter in the argument list is specified using either the *-shortflag* or the *--longflag* option.
 
+**-u** or **--umca** _input bay laurel (UMCA) raster map_
+
+**-ok** or **--oaks** _input SOD-oaks raster map_  
+  
+**-lvt** or **--livetree** _input live tree (all) raster map_
+
 **-hi** or **--host_index** _your input host index raster_
 
 **-src** or **--sources** _initial sources of infection raster map_
@@ -50,6 +56,10 @@ Each parameter in the argument list is specified using either the *-shortflag* o
 
 **-pd** or **--pwdir** _if you account for wind, what should the predominant wind direction be for the area? N (= North), NE (= Northeast), E (= East), etc._
 
+**-spr** or **--spore_rate** _spore production rate per week for each infected tree_
+
 **-o** or **--output** _basename for output GRASS raster maps_
 
 **-n** or **--nth_output** _output every nth map_
+
+**-scn** or **--scenario** _future weather scenario_
