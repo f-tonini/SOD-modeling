@@ -76,13 +76,12 @@ immune_rast <- lvtree_rast - (umca_rast + oaks_rast)
 #raster resolution
 res_win <- res(umca_rast)[1]
 
-##Initial sources of infection (UMCA):
-I_umca_rast <- readRAST(opt$sources)
-I_umca_rast <- raster(I_umca_rast) 
+##Initial infection (OAKS):
+I_oaks_rast <- readRAST(opt$sources)
+I_oaks_rast <- raster(I_oaks_rast) 
 
-#initialize zero-infection rasters for oaks:
-I_oaks_rast <- I_umca_rast  ##clone raster
-I_oaks_rast[] <- 0          ##init to 0 
+##Initial sources of infection (UMCA): assumed
+I_umca_rast <- I_oaks_rast * 2
 
 #Susceptibles UMCA = Current Abundance - Infected (I_rast)
 S_umca_rast <- umca_rast - I_umca_rast
