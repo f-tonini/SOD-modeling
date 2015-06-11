@@ -83,13 +83,15 @@ I_oaks_rast <- raster(I_oaks_rast)
 ##Initial sources of infection (UMCA): assumed
 I_umca_rast <- I_oaks_rast * 2
 
-#Susceptibles UMCA = Current Abundance - Infected (I_rast)
+#Susceptibles OAKS = Current Abundance - Infected 
+S_oaks_rast <- oaks_rast - I_oaks_rast
+#Susceptibles UMCA = Current Abundance - Infected 
 S_umca_rast <- umca_rast - I_umca_rast
 
 #integer matrix with susceptible and infected
 susceptible_umca <- as.matrix(S_umca_rast)
 infected_umca <- as.matrix(I_umca_rast)
-susceptible_oaks <- as.matrix(oaks_rast)
+susceptible_oaks <- as.matrix(S_oaks_rast)
 infected_oaks <- as.matrix(I_oaks_rast)
 immune_matr <- as.matrix(immune_rast)
 
