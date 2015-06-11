@@ -27,7 +27,7 @@ Before running the code make sure to follow these steps:
 4. Open GRASS GIS 7 and set up a location + mapset where to store/import your initial raster files. This step is necessary in order to (a) have a consistent projection across multiple files (all files within a GRASS location should be in the same coordinate system), and (b) make sure all the output raster files will be stores in the same GRASS location. Select a location from the main window (if none, create one), and a mapset (default is PERMANENT). Go to File >> Import raster data >> common format imports and make sure you import both any rasters to be called during program execution. For example, import the initial host index raster, and the initial sources of infection raster.
 
 5. Open the GRASS terminal prompt. Set up the GRASS region to match the imported initial raster file using:
-  * **g.region raster = _your\_host_index\_raster\_name_**
+  * **g.region raster = _reference\_raster\_name_**
 
 6. Run the code by invoking the R script from the GRASS terminal prompt using:
     * **Rscript _path\_to\_script_ --_arguments\_list_** 
