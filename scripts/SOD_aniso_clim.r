@@ -66,7 +66,9 @@ umca_rast <- readRAST(opt$umca)
 umca_rast <- round(raster(umca_rast))  #transform 'sp' obj to 'raster' obj
 #----> ALL SOD-affected oaks
 oaks_rast <- readRAST(opt$oaks)
-oaks_rast <- round(raster(oaks_rast))  
+oaks_rast <- round(raster(oaks_rast))
+#max
+mx <- cellStats(oaks_rast, stat='max') 
 #----> All live trees
 lvtree_rast <- readRAST(opt$livetree)
 lvtree_rast <- round(raster(lvtree_rast))
@@ -77,7 +79,7 @@ immune_rast <- lvtree_rast - (umca_rast + oaks_rast)
 res_win <- res(umca_rast)[1]
 
 ##Initial infection (OAKS):
-I_oaks_rast <- readRAST(opt$sources)
+I_oaks_rast <- readRAST(opt$sources) 
 I_oaks_rast <- raster(I_oaks_rast) 
 
 ##Initial sources of infection (UMCA): assumed
@@ -153,9 +155,8 @@ if(is.na(opt$scenario) & end <= last_yr){
   Cstack <- stack(Clst) 
 #CASE 3: UPPER 50% (favorable) future weather scenario
 }else if(opt$scenario == 'favorable'){
-  yrs <- sample(weather_rank[1:9,1], size = end - last_yr, replace = T)
   if(end <= last_yr) stop('you specified a future weather scenario BUT the end year is not a future year!')
-  yrs <- sample(weather_rank[,1], size = end - last_yr, replace = T)
+  yrs <- sample(weather_rank[1:9,1], size = end - last_yr, replace = T)
   Mlst_1 <- grep(paste(as.character(seq(start,end)), collapse="|"), Mlst, value=TRUE)
   Mlst_2 <- unlist(lapply(yrs, FUN=function(x){grep(as.character(x), Mlst, value=TRUE)}))
   Mlst <- c(Mlst_1, Mlst_2)
@@ -166,9 +167,8 @@ if(is.na(opt$scenario) & end <= last_yr){
   Cstack <- stack(Clst) 
 #CASE 4: LOWER 50% (unfavorable) future weather scenario
 }else{
-  yrs <- sample(weather_rank[10:18, 1], size = end - last_yr, replace = T)
   if(end <= last_yr) stop('you specified a future weather scenario BUT the end year is not a future year!')
-  yrs <- sample(weather_rank[,1], size = end - last_yr, replace = T)
+  yrs <- sample(weather_rank[10:18, 1], size = end - last_yr, replace = T)
   Mlst_1 <- grep(paste(as.character(seq(start,end)), collapse="|"), Mlst, value=TRUE)
   Mlst_2 <- unlist(lapply(yrs, FUN=function(x){grep(as.character(x), Mlst, value=TRUE)}))
   Mlst <- c(Mlst_1, Mlst_2)
@@ -213,20 +213,22 @@ for (tt in tstep){
     
     ##CALCULATE OUTPUT TO PLOT: 
     # 1) values as % infected
-    I_oaks_rast[] <- ifelse(I_oaks_rast[] == 0, NA, I_oaks_rast[]/oaks_rast[])
+    #I_oaks_rast[] <- ifelse(I_oaks_rast[] == 0, NA, I_oaks_rast[]/oaks_rast[])
     
     # 2) values as number of infected per cell
-    #I_oaks_rast[] <- ifelse(I_oaks_rast[] == 0, NA, I_oaks_rast[])
+    I_oaks_rast[] <- ifelse(I_oaks_rast[] == 0, NA, I_oaks_rast[])
     
     # 3) values as 0 (non infected) and 1 (infected) cell
     #I_oaks_rast[] <- ifelse(I_oaks_rast[] > 0, 1, 0) 
     #I_oaks_rast[] <- ifelse(I_oaks_rast[] > 0, 1, NA) 
     
     #PLOT: overlay current plot on background image
-    bks <- c(0, 0.25, 0.5, 0.75, 1)
-    my_palette <- colorRampPalette(c("springgreen", "yellow1", "orange", "red1"))(n = 4)
-    #image(I_oaks_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=1)), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
-    image(I_oaks_rast, breaks=bks, col=addalpha(my_palette, 1), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
+    
+    #bks <- c(0, 0.25, 0.5, 0.75, 1)
+    #my_palette <- colorRampPalette(c("springgreen", "yellow1", "orange", "red1"))(n = 4)
+    #image(I_oaks_rast, breaks=bks, col=addalpha(my_palette, 1), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
+    bks <- seq(0, mx, length = 10)
+    image(I_oaks_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=1)), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
     boxed.labels(xpos, ypos, tt, bg="white", border=NA, font=2)
     
     #WRITE TO FILE:
@@ -283,10 +285,10 @@ for (tt in tstep){
     I_oaks_rast[] <- infected_oaks
     
     # 1) values as % infected
-    I_oaks_rast[] <- ifelse(I_oaks_rast[] == 0, NA, I_oaks_rast[]/oaks_rast[])
+    #I_oaks_rast[] <- ifelse(I_oaks_rast[] == 0, NA, I_oaks_rast[]/oaks_rast[])
     
     # 2) values as number of infected per cell
-    #I_oaks_rast[] <- ifelse(I_oaks_rast[] == 0, NA, I_oaks_rast[])
+    I_oaks_rast[] <- ifelse(I_oaks_rast[] == 0, NA, I_oaks_rast[])
     
     # 3) values as 0 (non infected) and 1 (infected) cell
     #I_oaks_rast[] <- ifelse(I_oaks_rast[] > 0, 1, 0) 
@@ -295,10 +297,11 @@ for (tt in tstep){
     if (cnt %% opt$nth_output == 0){
       
       #PLOT: overlay current plot on background image
-      bks <- c(0, 0.25, 0.5, 0.75, 1)
-      my_palette <- colorRampPalette(c("springgreen", "yellow1", "orange", "red1"))(n = 4)
-      #image(I_oaks_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=1)), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
-      image(I_oaks_rast, breaks=bks, col=addalpha(my_palette, .5), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
+      #bks <- c(0, 0.25, 0.5, 0.75, 1)
+      #my_palette <- colorRampPalette(c("springgreen", "yellow1", "orange", "red1"))(n = 4)
+      #image(I_oaks_rast, breaks=bks, col=addalpha(my_palette, .5), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
+      bks <- seq(0, mx, length = 10)
+      image(I_oaks_rast, breaks=bks, col=rev(heat.colors(length(bks)-1, alpha=1)), add=T, axes=F, box=F, ann=F, legend=F, useRaster=T)
       boxed.labels(xpos, ypos, tt, bg="white", border=NA, font=2)
       
       #WRITE TO FILE:
@@ -312,6 +315,8 @@ for (tt in tstep){
       
       if (cnt == length(tstep) - 1) {
         #WRITE TO FILE:
+        I_umca_rast[] <- infected_umca
+        I_umca_rast[] <- ifelse(I_umca_rast[] == 0, NA, I_umca_rast[])
         I_umca_rast_sp <- as(I_umca_rast, 'SpatialGridDataFrame')
         writeRAST(I_umca_rast_sp, vname=paste(opt$output, '_umca', sprintf(formatting_str, cnt), sep=''), overwrite=TRUE) #write to GRASS raster file
         execGRASS('r.timestamp', map=paste(opt$output, '_umca', sprintf(formatting_str, cnt), sep=''), date=paste(split_date[3], months_names[as.numeric(split_date[2])], split_date[1]))        
