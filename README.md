@@ -7,7 +7,7 @@ Ross K. Meentemeyer, Nik J. Cunniffe, Alex R. Cook, Joao A. N. Filipe, Richard D
 This folder contains all the GIS layers necessary to test run our code. Subfolder **_weather_** contains weekly **m** (=moisture) and **c** (=mean temperature) raster files. These are called by the main R script during execution.
 
 ### *scripts*
-This folder contains the scripts used in this project. Files with a .r extension are written in R, while a .cpp extension indicates C++ files written using the R package [Rcpp] (http://www.rcpp.org/). The script **SOD\_aniso\_clim.r** implements the spread of *P. ramorum* with the option of accounting for wind direction (anisotropy) and weather suitability.
+This folder contains the scripts used in this project. Files with a .r extension are written in R, while a .cpp extension indicates C++ files written using the R package [Rcpp] (http://www.rcpp.org/). The file **SOD\_aniso\_clim\_RGRASS.r** is the main R script implementing the spread of *P. ramorum* with the option of accounting for wind direction (anisotropy) and weather suitability. The file **SOD\_aniso\_clim.r** is a stand-alone version of the same model to be run within R (NO GRASS GIS needed).
 
 ## Usage
 
