@@ -667,3 +667,41 @@ infectFun <- function(bkgr, S, I){
   
 }
 
+
+climGen <- function(ls, start, end, Wrank, scn=NA){
+  
+  #CASE 1: no future weather needed
+  if(is.na(scn) & end <= last_yr){
+    ls <- grep(paste(as.character(seq(start,end)), collapse="|"), ls, value=TRUE)  #use only the raster files matching the years of interest
+    ls.stack <- stack(ls)  
+    #CASE 2: RANDOM future weather scenario  
+  }else if(scn == 'random'){
+    if(end <= last_yr) stop('you specified a future weather scenario BUT the end year is not a future year!')
+    yrs <- sample(weather_rank[,1], size = end - last_yr, replace = T)
+    ls_1 <- grep(paste(as.character(seq(start,end)), collapse="|"), ls, value=TRUE)
+    ls_2 <- unlist(lapply(yrs, FUN=function(x){grep(as.character(x), ls, value=TRUE)}))
+    ls <- c(ls_1, ls_2)
+    ls.stack <- stack(ls) 
+    #CASE 3: UPPER 50% (favorable) future weather scenario
+  }else if(scn == 'favorable'){
+    if(end <= last_yr) stop('you specified a future weather scenario BUT the end year is not a future year!')
+    yrs <- sample(weather_rank[1:9,1], size = end - last_yr, replace = T)
+    ls_1 <- grep(paste(as.character(seq(start,end)), collapse="|"), ls, value=TRUE)
+    ls_2 <- unlist(lapply(yrs, FUN=function(x){grep(as.character(x), ls, value=TRUE)}))
+    ls <- c(ls_1, ls_2)
+    ls.stack <- stack(ls) 
+    #CASE 4: LOWER 50% (unfavorable) future weather scenario
+  }else{
+    if(end <= last_yr) stop('you specified a future weather scenario BUT the end year is not a future year!')
+    yrs <- sample(weather_rank[10:18, 1], size = end - last_yr, replace = T)
+    ls_1 <- grep(paste(as.character(seq(start,end)), collapse="|"), ls, value=TRUE)
+    ls_2 <- unlist(lapply(yrs, FUN=function(x){grep(as.character(x), ls, value=TRUE)}))
+    ls <- c(ls_1, ls_2)
+    ls.stack <- stack(ls) 
+  }
+  
+  return(ls.stack)
+  
+}
+
+
