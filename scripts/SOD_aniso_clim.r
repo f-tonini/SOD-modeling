@@ -9,10 +9,6 @@
 # Software:     Tested successfully using R version 3.0.2 (http://www.r-project.org/)
 #-----------------------------------------------------------------------------------------------------------------------
 
-
-#install packages
-#install.packages(c("rgdal","raster","lubridate","CircStats","Rcpp", "plotrix"))
-
 #load packages:
 suppressPackageStartupMessages(library(raster))    #Raster operation and I/O. Depends R (≥ 2.15.0)
 suppressPackageStartupMessages(library(rgdal))     #Geospatial data abstraction library. Depends R (≥ 2.14.0)
@@ -24,13 +20,6 @@ suppressPackageStartupMessages(library(ncdf))   #work with NetCDF datasets
 
 ##Define the main working directory based on the current script path
 setwd("D:\\SOD-modeling")
-
-#Path to folders in which you want to save all your vector & raster files
-#fOutput <- 'output'
-
-##Create a physical copy of the subdirectory folder(s) where you save your output
-##If the directory already exists it gives a warning, BUT we can suppress it using showWarnings = FALSE
-#dir.create(fOutput, showWarnings = FALSE)
 
 ##Use an external source file w/ all modules (functions) used within this script. 
 ##Use FULL PATH if source file is not in the same folder w/ this script
@@ -91,30 +80,10 @@ tstep <- as.character(seq(dd_start, dd_end, 'weeks'))
 formatting_str = paste("%0", floor( log10( length(tstep) ) ) + 1, "d", sep='')
 
 ##WEATHER SUITABILITY: read and stack weather suitability raster BEFORE running the simulation
-#list of ALL weather layers
-lst <- dir('./layers/weather', pattern='\\.img$', full.names=T)
-
-#strip and read the last available historical year
-last_yr <- as.numeric(unlist(strsplit(basename(tail(lst, n=1)),'_'))[1])
-if (start > last_yr) stop('start simulation date needs to be within the range of available historical data')
-
-#sublist of weather coefficients
-#Mlst <- lst[grep("_m", lst)] #M = moisture; 
-#Clst <- lst[grep("_c", lst)] #C = temperature;
-
-#read csv table with ranked historical years
-weather_rank <- read.table('./layers/weather/WeatherRanked.csv', header = T, stringsAsFactors = F, sep=',')
-
-##future weather scenarios: if current simulation year is past the available data, use future climate 
-##(1) reading GCM projections from another raster stack  ##TODO!!!
-##(2) using available historical COMPLETE years (1990-2007), ranked by suitability
 
 #weather coefficients
 mcf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2007.nc'),  varid = "Mcoef") #M = moisture;
 ccf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2007.nc'),  varid = "Ccoef") #C = temperature;
-
-#Mstack <- climGen(Mlst, start, end, weather_rank) #M = moisture(precip)
-#Cstack <- climGen(Clst, start, end, weather_rank) #C =temperature(tmean)
 
 ##Seasonality: Do you want the spread to be limited to certain months?
 ss <- 'YES'   #'YES' or 'NO'
@@ -179,12 +148,10 @@ for (tt in tstep){
     #update week counter
     cnt <- cnt + 1
     
-    cat('current count is: ', cnt, '.\n')
     #is current week time step within a spread month (as defined by input parameters)?
     if (ss == 'YES' & !any(substr(tt,6,7) %in% months_msk)) next
     
     #Total weather suitability:
-    #W <- as.matrix(Mstack[[cnt]] * Cstack[[cnt]])
     W <- mcf.array[,,cnt] * ccf.array[,,cnt]
     
     #GENERATE SPORES:  
