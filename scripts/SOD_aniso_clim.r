@@ -67,7 +67,7 @@ bkr_img <- raster("./layers/ortho_5m_color.tif")
 
 ##Start-End date: 
 start <- 2000
-end <- 2007
+end <- 2014
 
 if (start > end) stop('start date must precede end date!!')
 
@@ -82,8 +82,8 @@ formatting_str = paste("%0", floor( log10( length(tstep) ) ) + 1, "d", sep='')
 ##WEATHER SUITABILITY: read and stack weather suitability raster BEFORE running the simulation
 
 #weather coefficients
-mcf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2007.nc'),  varid = "Mcoef") #M = moisture;
-ccf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2007.nc'),  varid = "Ccoef") #C = temperature;
+mcf.array <- get.var.ncdf(open.ncdf(paste('./layers/weather/weatherCoeff_', start, '_', end, '.nc', sep='')),  varid = "Mcoef") #M = moisture;
+ccf.array <- get.var.ncdf(open.ncdf(paste('./layers/weather/weatherCoeff_', start, '_', end, '.nc', sep='')),  varid = "Ccoef") #C = temperature;
 
 ##Seasonality: Do you want the spread to be limited to certain months?
 ss <- 'YES'   #'YES' or 'NO'
