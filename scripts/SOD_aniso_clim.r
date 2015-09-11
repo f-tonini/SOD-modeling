@@ -9,6 +9,7 @@
 # Software:     Tested successfully using R version 3.0.2 (http://www.r-project.org/)
 #-----------------------------------------------------------------------------------------------------------------------
 
+
 #install packages
 #install.packages(c("rgdal","raster","lubridate","CircStats","Rcpp", "plotrix"))
 
@@ -19,6 +20,7 @@ suppressPackageStartupMessages(library(lubridate)) #Make dealing with dates a li
 suppressPackageStartupMessages(library(CircStats)) #Circular Statistics - Von Mises distribution
 suppressPackageStartupMessages(library(Rcpp))      #Seamless R and C++ Integration. Depends R (≥ 3.0.0)
 suppressPackageStartupMessages(library(plotrix))   #Add text annotations to plot
+suppressPackageStartupMessages(library(ncdf))   #work with NetCDF datasets
 
 ##Define the main working directory based on the current script path
 setwd("D:\\SOD-modeling")
@@ -97,8 +99,8 @@ last_yr <- as.numeric(unlist(strsplit(basename(tail(lst, n=1)),'_'))[1])
 if (start > last_yr) stop('start simulation date needs to be within the range of available historical data')
 
 #sublist of weather coefficients
-Mlst <- lst[grep("_m", lst)] #M = moisture; 
-Clst <- lst[grep("_c", lst)] #C = temperature;
+#Mlst <- lst[grep("_m", lst)] #M = moisture; 
+#Clst <- lst[grep("_c", lst)] #C = temperature;
 
 #read csv table with ranked historical years
 weather_rank <- read.table('./layers/weather/WeatherRanked.csv', header = T, stringsAsFactors = F, sep=',')
@@ -106,8 +108,13 @@ weather_rank <- read.table('./layers/weather/WeatherRanked.csv', header = T, str
 ##future weather scenarios: if current simulation year is past the available data, use future climate 
 ##(1) reading GCM projections from another raster stack  ##TODO!!!
 ##(2) using available historical COMPLETE years (1990-2007), ranked by suitability
-Mstack <- climGen(Mlst, start, end, weather_rank) #M = moisture(precip)
-Cstack <- climGen(Clst, start, end, weather_rank) #C =temperature(tmean)
+
+#weather coefficients
+mcf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2007.nc'),  varid = "Mcoef") #M = moisture;
+ccf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2007.nc'),  varid = "Ccoef") #C = temperature;
+
+#Mstack <- climGen(Mlst, start, end, weather_rank) #M = moisture(precip)
+#Cstack <- climGen(Clst, start, end, weather_rank) #C =temperature(tmean)
 
 ##Seasonality: Do you want the spread to be limited to certain months?
 ss <- 'YES'   #'YES' or 'NO'
@@ -172,31 +179,22 @@ for (tt in tstep){
     #update week counter
     cnt <- cnt + 1
     
+    cat('current count is: ', cnt, '.\n')
     #is current week time step within a spread month (as defined by input parameters)?
-    if (ss == 'YES' & !any(substr(tt,6,7) %in% months_msk)) {
-      if (cnt == length(tstep) - 1) {
-        #WRITE TO FILE:
-        #writeRaster(I_oaks_rast, filename=paste('./', fOutput, '/', opt$output, '_', sprintf(formatting_str, cnt), sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
-        #writeRaster(I_oaks_rast, filename=paste('./', fOutput, '/', opt$output, '_', sprintf(formatting_str, cnt), sep=''), format='HFA', datatype='INT1U', overwrite=TRUE) # nbr. infected hosts as output
-        #writeRaster(I_oaks_rast, filename=paste('./', fOutput, '/', opt$output, '_', sprintf(formatting_str, cnt), sep=''), format='HFA', datatype='LOG1S', overwrite=TRUE)  # 0=non infected 1=infected output
-        I_umca_rast[] <- I_umca
-        I_umca_rast[] <- ifelse(I_umca_rast[] == 0, NA, I_umca_rast[])
-        #writeRaster(I_umca_rast, filename=paste('./', fOutput, '/', opt$output, '_', sprintf(formatting_str, cnt), sep=''), format='HFA', datatype='FLT4S', overwrite=TRUE) # % infected as output
-        #writeRaster(I_umca_rast, filename=paste('./', fOutput, '/', opt$output, '_', sprintf(formatting_str, cnt), sep=''), format='HFA', datatype='INT1U', overwrite=TRUE) # nbr. infected hosts as output
-        #writeRaster(I_umca_rast, filename=paste('./', fOutput, '/', opt$output, '_', sprintf(formatting_str, cnt), sep=''), format='HFA', datatype='LOG1S', overwrite=TRUE)  # 0=non infected 1=infected output
-      }
-      next
-    }
-          
+    if (ss == 'YES' & !any(substr(tt,6,7) %in% months_msk)) next
+    
     #Total weather suitability:
-    W <- as.matrix(Mstack[[cnt]] * Cstack[[cnt]])
+    #W <- as.matrix(Mstack[[cnt]] * Cstack[[cnt]])
+    W <- mcf.array[,,cnt] * ccf.array[,,cnt]
     
     #GENERATE SPORES:  
     #integer matrix
+    set.seed(42)
     spores_mat <- SporeGenCpp(I_umca, W, rate = spore_rate) #rate: spores/week for each infected host (4.4 default)
     
     #SPORE DISPERSAL:  
     #'List'
+    set.seed(42)
     if (wind == 'YES') {
       
       #Check if predominant wind direction has been specified correctly:
