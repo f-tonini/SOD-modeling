@@ -6,7 +6,7 @@
 # Created:      01/07/2015
 # Copyright:    (c) 2015 by Francesco Tonini
 # License:      GNU General Public License (GPL)
-# Software:     Tested successfully using R version 3.0.2 (http://www.r-project.org/)
+# Software:     Tested successfully using R version 3.1.3 (http://www.r-project.org/)
 #-----------------------------------------------------------------------------------------------------------------------
 
 #load packages:
@@ -26,48 +26,110 @@ setwd("D:\\SOD-modeling")
 source('./scripts/myfunctions_SOD.r')
 sourceCpp("./scripts/myCppFunctions.cpp") #for C++ custom functions
 
-##Input rasters: abundance (tree density per hectare)
-#----> UMCA
-umca_rast <- raster("./layers/UMCA_den_100m.img")
-umca_rast <- round(umca_rast)  #transform 'sp' obj to 'raster' obj
-#----> ALL SOD-affected oaks
-oaks_rast <- raster("./layers/OAKS_den_100m.img")
-oaks_rast <- round(oaks_rast)
-#max
-mx <- cellStats(oaks_rast, stat='max') 
-#----> All live trees
-lvtree_rast <- raster("./layers/TPH_den_100m.img")
-lvtree_rast <- round(lvtree_rast)
-#calculate trees that are SOD-immune:
-IMM_rast <- lvtree_rast - (umca_rast + oaks_rast) 
+##################################################################
+##INPUT RASTERS: abundance (tree density per hectare)
 
-#raster resolution
+#--- All live trees ---
+lvtree_rast <- raster("./layers/TPH_den_100m.img")
+
+#--- P. ramorum ONLY affected species: ---
+#UMCA
+umca_rast <- raster("./layers/UMCA_den_100m.img")
+#SESE3 (Redwood)
+sese_rast <- raster("./layers/SESE3_den_100m.img")
+#ACMA3 (Bigleaf Maple)
+acma_rast <- raster("./layers/ACMA3_den_100m.img")
+#AECA (California Buckeye)
+aeca_rast <- raster("./layers/AECA_den_100m.img")
+#ARME (Madrone)
+arme_rast <- raster("./layers/ARME_den_100m.img")
+#PSME (Douglas fir)
+psme_rast <- raster("./layers/PSME_den_100m.img")
+
+#--- P. ramorum host and SOD-affected species: ---
+#LIDE3 (Tanoak)
+lide_rast <- raster("./layers/LIDE3_den_100m.img")
+
+#--- SOD-affected species: ---
+#oaks (QUAG, QUCH2, QUKE)
+oaks_rast <- raster("./layers/OAKS_den_100m.img")
+#################################################################
+
+##########################################################
+#### SPREAD SCORE ####
+#Read table with P.ramorum host spread potential scores:
+Hscore <- read.table("./HostScore.txt", header = T, stringsAsFactors = F, sep=',')
+#subset only species with score > 0 and that are present in the study area
+Hscore <- Hscore[Hscore$Host_score > 0 & !is.na(Hscore$LEMMA_ABBR), ]
+#calculate and add relative score weights:
+Hscore$weight <- round(Hscore$Host_score / Hscore$Host_score[Hscore$LEMMA_ABBR == "UMCA"],2)
+#create a list with species and associated weight:
+wLst <- split(Hscore$weight, Hscore$LEMMA_ABBR)
+######################################################
+
+#max value for plotting
+mx <- cellStats(oaks_rast, stat='max') 
+#raster resolution (all rasters are the same resolution so take any as reference)
 res_win <- res(umca_rast)[1]
 
+###################################
+### INFECTED AND SUSCEPTIBLES ####
+
 ##Initial infection (OAKS):
-I_oaks_rast <- raster("./layers/init_2000_cnt.img") 
+I_oaks_rast <- raster("./layers/init_2000_cnt.img") #measured
 
-##Initial sources of infection (UMCA): assumed
-I_umca_rast <- I_oaks_rast * 2
-
-#Susceptibles OAKS = Current Abundance - Infected 
-S_oaks_rast <- oaks_rast - I_oaks_rast
-#Susceptibles UMCA = Current Abundance - Infected 
-S_umca_rast <- umca_rast - I_umca_rast
-
-#integer matrix with susceptible and infected
-S_umca <- as.matrix(S_umca_rast)
-I_umca <- as.matrix(I_umca_rast)
-S_oaks <- as.matrix(S_oaks_rast)
+#define matrices for infected and susceptible species of interest
 I_oaks <- as.matrix(I_oaks_rast)
-IMM_matr <- as.matrix(IMM_rast)
+S_oaks <- as.matrix(oaks_rast - I_oaks_rast)
+I_umca <- matrix(0, nrow=res_win, ncol=res_win)
+S_umca <- as.matrix(umca_rast)
+I_lide <- matrix(0, nrow=res_win, ncol=res_win)
+S_lide <- as.matrix(lide_rast)
+I_acma <- matrix(0, nrow=res_win, ncol=res_win)
+S_acma <- as.matrix(acma_rast)
+I_arme <- matrix(0, nrow=res_win, ncol=res_win)
+S_arme <- as.matrix(arme_rast)
+I_aeca <- matrix(0, nrow=res_win, ncol=res_win)
+S_aeca <- as.matrix(aeca_rast)
+I_psme <- matrix(0, nrow=res_win, ncol=res_win)
+S_psme <- as.matrix(psme_rast)
+I_sese <- matrix(0, nrow=res_win, ncol=res_win)
+S_sese <- as.matrix(sese_rast)
+
+##Initialize infected trees for each species (!!NEEDED UNLESS EMPIRICAL INFO IS AVAILABLE!!)
+if(any(S_umca[I_oaks > 0] > 0)) I_umca[I_oaks > 0] <- mapply(function(x,y) ifelse(x > y, min(c(x,y*3)), x), 
+                                                             S_umca[I_oaks > 0], I_oaks[I_oaks > 0]) 
+if(any(S_lide[I_oaks > 0] > 0)) I_lide[I_oaks > 0] <- mapply(function(x,y) ifelse(x > y, min(c(x,y*2)), x), 
+                                                             S_lide[I_oaks > 0], I_oaks[I_oaks > 0])
+if(any(S_acma[I_oaks > 0] > 0)) I_acma[I_oaks > 0] <- mapply(function(x,y) ifelse(x > y, min(c(x,y)), x), 
+                                                             S_acma[I_oaks > 0], I_oaks[I_oaks > 0])
+if(any(S_arme[I_oaks > 0] > 0)) I_arme[I_oaks > 0] <- mapply(function(x,y) ifelse(x > y, min(c(x,y)), x), 
+                                                             S_arme[I_oaks > 0], I_oaks[I_oaks > 0])
+if(any(S_aeca[I_oaks > 0] > 0)) I_aeca[I_oaks > 0] <- mapply(function(x,y) ifelse(x > y, min(c(x,y)), x), 
+                                                             S_aeca[I_oaks > 0], I_oaks[I_oaks > 0])
+if(any(S_psme[I_oaks > 0] > 0)) I_psme[I_oaks > 0] <- mapply(function(x,y) ifelse(x > y, min(c(x,y)), x), 
+                                                             S_psme[I_oaks > 0], I_oaks[I_oaks > 0])
+if(any(S_sese[I_oaks > 0] > 0)) I_sese[I_oaks > 0] <- mapply(function(x,y) ifelse(x > y, min(c(x,y)), x), 
+                                                             S_sese[I_oaks > 0], I_oaks[I_oaks > 0])
+
+##update susceptible matrices by subtracting the initialized infections 
+S_umca <- S_umca - I_umca 
+S_lide <- S_lide - I_lide
+S_acma <- S_acma - I_acma
+S_arme <- S_arme - I_arme
+S_aeca <- S_aeca - I_aeca
+S_psme <- S_psme - I_psme
+S_sese <- S_sese - I_sese
+  
+##define matrix for immune live trees
+N_live <- as.matrix(lvtree_rast)
 
 ##background satellite image for plotting
 bkr_img <- raster("./layers/ortho_5m_color.tif") 
 
 ##Start-End date: 
 start <- 2000
-end <- 2014
+end <- 2008
 
 if (start > end) stop('start date must precede end date!!')
 
@@ -82,8 +144,8 @@ formatting_str = paste("%0", floor( log10( length(tstep) ) ) + 1, "d", sep='')
 ##WEATHER SUITABILITY: read and stack weather suitability raster BEFORE running the simulation
 
 #weather coefficients
-mcf.array <- get.var.ncdf(open.ncdf(paste('./layers/weather/weatherCoeff_', start, '_', end, '.nc', sep='')),  varid = "Mcoef") #M = moisture;
-ccf.array <- get.var.ncdf(open.ncdf(paste('./layers/weather/weatherCoeff_', start, '_', end, '.nc', sep='')),  varid = "Ccoef") #C = temperature;
+mcf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2014.nc'),  varid = "Mcoef") #M = moisture;
+ccf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2014.nc'),  varid = "Ccoef") #C = temperature;
 
 ##Seasonality: Do you want the spread to be limited to certain months?
 ss <- 'YES'   #'YES' or 'NO'
@@ -99,8 +161,8 @@ nth_output <- 4
 plot(bkr_img, xaxs = "i", yaxs = "i")
 
 #plot coordinates for plotting text:
-xpos <- (bbox(I_umca_rast)[1,2] + bbox(I_umca_rast)[1,1]) / 2
-ypos <- bbox(I_umca_rast)[2,2] - 150
+xpos <- (bbox(umca_rast)[1,2] + bbox(umca_rast)[1,1]) / 2
+ypos <- bbox(umca_rast)[2,2] - 150
 
 #time counter to access pos index in weather raster stacks
 cnt <- 0 
@@ -157,7 +219,8 @@ for (tt in tstep){
     #GENERATE SPORES:  
     #integer matrix
     set.seed(42)
-    spores_mat <- SporeGenCpp(I_umca, W, rate = spore_rate) #rate: spores/week for each infected host (4.4 default)
+    spores_mat <- SporeGenCpp_MH(I_umca, I_lide, I_acma, I_arme, I_aeca, 
+                                 I_psme, I_sese, wLst, W, rate = spore_rate) #rate: spores/week for each infected host (4.4 default)
     
     #SPORE DISPERSAL:  
     #'List'
@@ -166,11 +229,15 @@ for (tt in tstep){
       
       #Check if predominant wind direction has been specified correctly:
       if (!(pwdir %in% c('N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'))) stop('A predominant wind direction must be specified: N, NE, E, SE, S, SW, W, NW')
-      out <- SporeDispCppWind_mh(spores_mat, S_UM=S_umca, S_OK=S_oaks, I_UM=I_umca, I_OK=I_oaks, IMM=IMM_matr, 
+      out <- SporeDispCppWind_MH(spores_mat, S_UM=S_umca, S_LD=S_lide, S_AC=S_acma, S_AR=S_arme, S_AE=S_aeca, 
+                                 S_PS=S_psme, S_SE=S_sese, S_OK=S_oaks, I_UM=I_umca, I_LD=I_lide, I_AC=I_acma, 
+                                 I_AR=I_arme, I_AE=I_aeca, I_PS=I_psme, I_SE=I_sese, I_OK=I_oaks, N_LVE=N_live, 
                                  W, rs=res_win, rtype='Cauchy', scale1=20.57, wdir=pwdir, kappa=2)
     
     }else{
-      out <- SporeDispCpp_mh(spores_mat, S_UM=S_umca, S_OK=S_oaks, I_UM=I_umca, I_OK=I_oaks, IMM=IMM_matr,
+      out <- SporeDispCpp_MH(spores_mat, S_UM=S_umca, S_LD=S_lide, S_AC=S_acma, S_AR=S_arme, S_AE=S_aeca, 
+                             S_PS=S_psme, S_SE=S_sese, S_OK=S_oaks, I_UM=I_umca, I_LD=I_lide, I_AC=I_acma, 
+                             I_AR=I_arme, I_AE=I_aeca, I_PS=I_psme, I_SE=I_sese, I_OK=I_oaks, N_LVE=N_live,
                              W, rs=res_win, rtype='Cauchy', scale1=20.57) ##TO DO
     }  
     
@@ -178,6 +245,24 @@ for (tt in tstep){
     #UMCA
     S_umca <- out$S_UM 
     I_umca <- out$I_UM 
+    #LIDE
+    S_lide <- out$S_LD 
+    I_lide <- out$I_LD     
+    #ACMA
+    S_acma <- out$S_AC 
+    I_acma <- out$I_AC     
+    #ARME
+    S_arme <- out$S_AR 
+    I_arme <- out$I_AR     
+    #AECA
+    S_aeca <- out$S_AE 
+    I_aeca <- out$I_AE     
+    #PSME
+    S_psme <- out$S_PS 
+    I_psme <- out$I_PS     
+    #SESE
+    S_sese <- out$S_SE 
+    I_sese <- out$I_SE    
     #oaks
     S_oaks <- out$S_OK 
     I_oaks <- out$I_OK
