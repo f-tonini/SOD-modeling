@@ -30,179 +30,132 @@ IntegerMatrix SporeGenCpp(IntegerMatrix I, NumericMatrix W, double rate){
     for (int col = 0; col < ncol; col++){
       
       if (I(row, col) > 0){  //if infected > 0, generate spores proportional to production rate * weather suitability
-
+        
         double lambda = rate * W(row, col);
         NumericVector inf = rpois(I(row, col), lambda);
         int s = sum(inf);
         SP(row, col) = s;
-
+        
       }
-   
+      
     }
   }
   
   
   return SP;
-
-
+  
+  
 }
 
-/*
+//spore generation function for multi-host patho-system with HOST competency weights
 // [[Rcpp::export]]
-List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
-                double rs, String rtype, String wtype, 
-                String wdir=NA_STRING,
-                double scale1=NA_REAL, int kappa=NA_REAL, double scale2=NA_REAL,
-                double mean=NA_REAL, double sd=NA_REAL,
-                double gamma=NA_REAL){
-
-  // internal variables //
-  int nrow = x.nrow(); 
-  int ncol = x.ncol();
-  int row0;
-  int col0;
-
-  double dist = 0;
-  double theta = 0;
-  double PropS;
-
-  //for Rcpp random numbers
+IntegerMatrix SporeGenCpp_MH(IntegerMatrix I_UM, IntegerMatrix I_LD, IntegerMatrix I_AC,
+                             IntegerMatrix I_AR, IntegerMatrix I_AE, IntegerMatrix I_PS,
+                             IntegerMatrix I_SE, List HW, NumericMatrix W, 
+                             double rate){
+  
+  
+  // internal variables
+  int nrow = I_UM.nrow(); 
+  int ncol = I_UM.ncol();
+  NumericVector inf;
+  
+  NumericVector hw_um_v = as<NumericVector>(HW["UMCA"]);
+  NumericVector hw_ld_v = as<NumericVector>(HW["LIDE3"]);
+  NumericVector hw_ac_v = as<NumericVector>(HW["ACMA3"]);
+  NumericVector hw_ar_v = as<NumericVector>(HW["ARME"]);
+  NumericVector hw_ae_v = as<NumericVector>(HW["AECA"]);
+  NumericVector hw_ps_v = as<NumericVector>(HW["PSME"]);
+  NumericVector hw_se_v = as<NumericVector>(HW["SESE3"]);
+  
+  // initialize a new matrix of zeroes by cloning one of the infected matrices
+  IntegerMatrix SP = clone<IntegerMatrix>(I_UM);
+  
   RNGScope scope;
   
-  //Function rcauchy("rcauchy");
-  //Function rexp("rexp");
-  //Function rnorm("rnorm");
-  //Function runif("runif");
-  Function rvm("rvm");
-  Function sample("sample");
-
-  //LOOP THROUGH EACH CELL of the input matrix 'x' (this should be the study area)
+  //LOOP THROUGH EACH CELL OF LANDSCAPE MATRIX
   for (int row = 0; row < nrow; row++) {
     for (int col = 0; col < ncol; col++){
       
-      if(x(row,col) > 0){  //if spores in cell (row,col) > 0, disperse
-        
-        for(int sp = 1; (sp <= x(row,col)); sp++){
-          
-          //GENERATE DISTANCES
-          if (rtype == "Cauchy"){
-
-            dist = abs(R::rcauchy(0, scale1));
-          
-          }else if (rtype == "Cauchy Mixture"){
-            
-            if (gamma >= 1 || gamma <= 0) stop("The parameter gamma must range between (0-1)");
-            
-            //TO DO: does it have to be NumericVector even for size=1 ? ******************
-            NumericVector fv = sample(Range(1, 2), 1, false, NumericVector::create(gamma, 1-gamma));
-            int f = fv[0];
-            if(f == 1) 
-              dist = abs(R::rcauchy(0, scale1));
-            else if (f==2) 
-              dist = abs(R::rcauchy(0, scale2));
-
-          }else if (rtype == "Exponential"){
-          
-            if (mean <= 0) stop("The parameter mean must be greater than zero!");
-            dist = abs(R::rexp(1/mean));
-
-          }else if (rtype == "Gauss"){
-            
-            if (mean <= 0 || sd <= 0) stop("The parameters mean and standard deviation (sd) must be greater than zero!");
-            dist = abs(R::rnorm(mean, sd));
-
-          }
-                    
-          //GENERATE ANGLES
-          if (wtype=="Uniform"){
-
-            theta = R::runif(-PI, PI);
-            
-          }else if(wtype=="VM"){
-            
-            if(kappa <= 0) 
-              stop("kappa must be greater than zero!");
-            
-            if (wdir == "N") 
-              theta = as<double>(rvm(1, 0 * (PI/180), kappa));  // kappa=concentration
-            else if (wdir == "NE")
-              theta = as<double>(rvm(1, 45 * (PI/180), kappa));  // kappa=concentration
-            else if(wdir == "E")
-              theta = as<double>(rvm(1, 90 * (PI/180), kappa));  // kappa=concentration
-            else if(wdir == "SE")
-              theta = as<double>(rvm(1, 135 * (PI/180), kappa));  // kappa=concentration
-            else if(wdir == "S")
-              theta = as<double>(rvm(1, 180 * (PI/180), kappa));  // kappa=concentration
-            else if(wdir == "SW")
-              theta = as<double>(rvm(1, 225 * (PI/180), kappa));  // kappa=concentration
-            else if(wdir == "W")
-              theta = as<double>(rvm(1, 270 * (PI/180), kappa));  // kappa=concentration
-            else if(wdir == "NW")
-              theta = as<double>(rvm(1, 315 * (PI/180), kappa));  // kappa=concentration
-
-          }
-          
-          
-          row0 = row - round((dist * cos(theta)) / rs);
-          col0 = col + round((dist * sin(theta)) / rs);
-          
-          
-          if (row0 < 1 || row0 >= nrow) continue;     //outside the region
-          if (col0 < 1 || col0 >= ncol) continue;     //outside the region
-          
-          
-          if(S(row0, col0) > 0){  
-            PropS = double(S(row0, col0)) / (S(row0, col0) + I(row0, col0));
-            double U = R::runif(0,1);
-            double Prob = PropS * W(row0, col0);
-
-            if (U < Prob){   //weather suitability affects prob success!  
-              I(row0, col0) = I(row0, col0) + 1; 
-              S(row0, col0) = S(row0, col0) - 1;
-            } 
-          }//ENF IF
-          
-        
-        }//END LOOP OVER ALL SPORES IN CURRENT CELL GRID
-       
-       
-      }//END IF S > 0  
+      int s = 0;
       
-    }   
-  }//END LOOP OVER ALL GRID CELLS
-
-  //return List::create(Named("I")=I, Named("S")=S);
-  return List::create(
-    _["S"] = S, 
-    _["I"] = I
-  );
+      // IF IN THE CURRENT CELLS THERE ARE SOME INFECTED TREES, THEN GENERATE SPORES 
+      // PROPORTIONALLY TO THE HOST WEIGHT AND LOCAL WEATHER SUITABILITY
+      if (I_UM(row, col) > 0){ 
+        double lambda = rate * W(row, col) * hw_um_v[0];
+        inf = rpois(I_UM(row, col), lambda);
+        s = s + sum(inf);
+      }
+      
+      if (I_LD(row, col) > 0){
+        double lambda = rate * W(row, col) * hw_ld_v[0];
+        inf = rpois(I_LD(row, col), lambda);
+        s = s + sum(inf);
+      }
+      
+      if (I_AC(row, col) > 0){
+        double lambda = rate * W(row, col) * hw_ac_v[0];
+        inf = rpois(I_AC(row, col), lambda);
+        s = s + sum(inf);
+      }
+      
+      if (I_AR(row, col) > 0){
+        double lambda = rate * W(row, col) * hw_ar_v[0];
+        inf = rpois(I_AR(row, col), lambda);
+        s = s + sum(inf);
+      }
+      
+      if (I_AE(row, col) > 0){
+        double lambda = rate * W(row, col) * hw_ae_v[0];
+        inf = rpois(I_AE(row, col), lambda);
+        s = s + sum(inf);
+      }
+      
+      if (I_PS(row, col) > 0){
+        double lambda = rate * W(row, col) * hw_ps_v[0];
+        inf = rpois(I_PS(row, col), lambda);
+        s = s + sum(inf);
+      }
+      
+      if (I_SE(row, col) > 0){
+        double lambda = rate * W(row, col) * hw_se_v[0];
+        inf = rpois(I_SE(row, col), lambda);
+        s = s + sum(inf);
+      }
+      
+      SP(row, col) = s;
+      
+    }
+  }//END OF LOOP
+  
+  
+  return SP;
+  
   
 }
-*/
-
 
 // [[Rcpp::export]]
 List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
-                double rs, String rtype, double scale1,
-                double scale2=NA_REAL,  //default values
-                double gamma=NA_REAL){  //default values
-
+                  double rs, String rtype, double scale1,
+                  double scale2=NA_REAL,  //default values
+                  double gamma=NA_REAL){  //default values
+  
   // internal variables //
   int nrow = x.nrow(); 
   int ncol = x.ncol();
   int row0;
   int col0;
-
+  
   double dist;
   double theta;
   double PropS;
-
+  
   //for Rcpp random numbers
   RNGScope scope;
   
   Function sample("sample");
   //Function rcauchy("rcauchy");  
-
+  
   //LOOP THROUGH EACH CELL of the input matrix 'x' (this should be the study area)
   for (int row = 0; row < nrow; row++) {
     for (int col = 0; col < ncol; col++){
@@ -225,7 +178,7 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
           }
           else 
             stop("The parameter rtype must be set to either 'Cauchy' or 'Cauchy Mixture'");
-        
+          
           //GENERATE ANGLES (using Uniform distribution):
           theta = R::runif(-PI, PI);
           
@@ -250,170 +203,47 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
             } 
           }//ENF IF
           
-        
+          
         }//END LOOP OVER ALL SPORES IN CURRENT CELL GRID
-       
-       
+        
+        
       }//END IF  
       
     }   
   }//END LOOP OVER ALL GRID CELLS
-
+  
   //return List::create(Named("I")=I, Named("S")=S);
   return List::create(
     _["S"] = S, 
     _["I"] = I
-  );
-  
-}
-
-// [[Rcpp::export]]
-List SporeDispCpp_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_OK, IntegerMatrix I_UM, IntegerMatrix I_OK, 
-                IntegerMatrix IMM, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
-                double rs, String rtype, double scale1,
-                double scale2=NA_REAL,  //default values
-                double gamma=NA_REAL){  //default values
-
-  // internal variables //
-  int nrow = x.nrow(); 
-  int ncol = x.ncol();
-  int row0;
-  int col0;
-
-  double dist;
-  double theta;
-  double PropS;
-
-  //for Rcpp random numbers
-  RNGScope scope;
-  
-  Function sample("sample");
-  //Function rcauchy("rcauchy");  
-
-  //LOOP THROUGH EACH CELL of the input matrix 'x' (this should be the study area)
-  for (int row = 0; row < nrow; row++) {
-    for (int col = 0; col < ncol; col++){
-      
-      if(x(row,col) > 0){  //if spores in cell (row,col) > 0, disperse
-        
-        for(int sp = 1; (sp <= x(row,col)); sp++){
-          
-          //GENERATE DISTANCES:
-          if (rtype == "Cauchy") 
-            dist = abs(R::rcauchy(0, scale1));
-          else if (rtype == "Cauchy Mixture"){
-            if (gamma >= 1 || gamma <= 0) stop("The parameter gamma must range between (0-1)");
-            NumericVector fv = sample(Range(1, 2), 1, false, NumericVector::create(gamma, 1-gamma));
-            int f = fv[0];
-            if(f == 1) 
-              dist = abs(R::rcauchy(0, scale1));
-            else 
-              dist = abs(R::rcauchy(0, scale2));
-          }
-          else 
-            stop("The parameter rtype must be set to either 'Cauchy' or 'Cauchy Mixture'");
-        
-          //GENERATE ANGLES (using Uniform distribution):
-          theta = R::runif(-PI, PI);
-          
-          //calculate new row and col position for the dispersed spore unit (using dist and theta)
-          row0 = row - round((dist * cos(theta)) / rs);
-          col0 = col + round((dist * sin(theta)) / rs);
-          
-          
-          if (row0 < 0 || row0 >= nrow) continue;     //outside the region
-          if (col0 < 0 || col0 >= ncol) continue;     //outside the region
-          
-          //if distance is within same pixel challenge all SOD hosts, otherwise challenge UMCA only
-          if (row0 == row && col0 == col){
-            
-            //if susceptible hosts are present in cell, calculate prob of infection
-            if(S_UM(row0, col0) > 0 || S_OK(row0, col0) > 0){
-  		        
-              int hostTot = int(S_UM(row0, col0) + S_OK(row0, col0) + I_UM(row0, col0) + I_OK(row0, col0));
-			        PropS = double(S_UM(row0, col0) + S_OK(row0, col0)) / (hostTot + IMM(row0, col0));              
-              
-              double U = R::runif(0,1);
-              double Prob = PropS * W(row0, col0); //weather suitability affects prob success!
-
-              //if U < Prob then one host will become infected
-              if (U < Prob){
-                
-                double PropS_UM = double(S_UM(row0, col0)) / (S_UM(row0, col0) + S_OK(row0, col0)); //fractions of susceptible host in cell
-                double PropS_OK = double(S_OK(row0, col0)) / (S_UM(row0, col0) + S_OK(row0, col0));
-                
-                //sample which of the three hosts will be infected
-                NumericVector sv = sample(NumericVector::create(1, 2), 1, false, NumericVector::create(PropS_UM, PropS_OK));
-                int s = sv[0];
-                if (s == 1){
-                  I_UM(row0, col0) = I_UM(row0, col0) + 1; //update infected UMCA
-                  S_UM(row0, col0) = S_UM(row0, col0) - 1; //update susceptible UMCA                                    
-                }else{
-                  I_OK(row0, col0) = I_OK(row0, col0) + 1; //update infected QUKE
-                  S_OK(row0, col0) = S_OK(row0, col0) - 1; //update susceptible QUKE                    
-                } 
-              }//ENF IF INFECTION LEVEL II 
-              
-            }//ENF IF          
-          
-          }else{
-
-            //if UMCA-only susceptibles are present in cell, calculate prob of infection
-            if(S_UM(row0, col0) > 0){
-              double PropS_UM = double(S_UM(row0, col0)) / (S_UM(row0, col0) + I_UM(row0, col0) + IMM(row0, col0)); //fractions of given host in cell
-              double U = R::runif(0,1);
-              double Prob = PropS_UM * W(row0, col0); //weather suitability affects prob success!
-              //if U < Prob then one host will become infected
-              if (U < Prob){
-                I_UM(row0, col0) = I_UM(row0, col0) + 1; //update infected UMCA
-                S_UM(row0, col0) = S_UM(row0, col0) - 1; //update susceptible UMCA             
-              }  
-            }//END IF
-          }//ENF IF DISTANCE CHECK  
-          
-        
-        }//END LOOP OVER ALL SPORES IN CURRENT CELL GRID
-       
-       
-      }//END IF  
-      
-    }   
-  }//END LOOP OVER ALL GRID CELLS
-
-  //return List::create(Named("I")=I, Named("S")=S);
-  return List::create(
-    _["S_UM"] = S_UM, 
-    _["I_UM"] = I_UM,
-    _["S_OK"] = S_OK, 
-    _["I_OK"] = I_OK   
   );
   
 }
 
 // [[Rcpp::export]]
 List SporeDispCppWind(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
-                double rs, String rtype, double scale1, 
-                String wdir, int kappa,
-                double scale2=NA_REAL,  //default values
-                double gamma=NA_REAL){  //default values
-
+                      double rs, String rtype, double scale1, 
+                      String wdir, int kappa,
+                      double scale2=NA_REAL,  //default values
+                      double gamma=NA_REAL){  //default values
+  
   // internal variables //
   int nrow = x.nrow(); 
   int ncol = x.ncol();
   int row0;
   int col0;
-
+  
   double dist;
   double theta;
   double PropS;
-
+  
   //for Rcpp random numbers
   RNGScope scope;
   
   //Function rcauchy("rcauchy");
   Function rvm("rvm");
   Function sample("sample");
-
+  
   //LOOP THROUGH EACH CELL of the input matrix 'x' (this should be the study area)
   for (int row = 0; row < nrow; row++) {
     for (int col = 0; col < ncol; col++){
@@ -436,7 +266,7 @@ List SporeDispCppWind(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, Numeric
           }
           else 
             stop("The parameter rtype must be set to either 'Cauchy' or 'Cauchy Mixture'");
-        
+          
           //GENERATE ANGLES (using Von Mises distribution):
           if(kappa <= 0)  // kappa=concentration
             stop("kappa must be greater than zero!");
@@ -458,7 +288,7 @@ List SporeDispCppWind(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, Numeric
             theta = as<double>(rvm(1, 270 * (PI/180), kappa));  
           else
             theta = as<double>(rvm(1, 315 * (PI/180), kappa));
-
+          
           
           //calculate new row and col position for the dispersed spore unit (using dist and theta)
           row0 = row - round((dist * cos(theta)) / rs);
@@ -481,15 +311,15 @@ List SporeDispCppWind(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, Numeric
             } 
           }//ENF IF
           
-        
+          
         }//END LOOP OVER ALL SPORES IN CURRENT CELL GRID
-       
-       
+        
+        
       }//END IF 
       
     }   
   }//END LOOP OVER ALL GRID CELLS
-
+  
   //return List::create(Named("I")=I, Named("S")=S);
   return List::create(
     _["S"] = S, 
@@ -499,30 +329,38 @@ List SporeDispCppWind(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, Numeric
 }
 
 // [[Rcpp::export]]
-List SporeDispCppWind_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_OK, IntegerMatrix I_UM, IntegerMatrix I_OK, 
-                IntegerMatrix IMM, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
-                double rs, String rtype, double scale1, 
-                String wdir, int kappa,
-                double scale2=NA_REAL,  //default values
-                double gamma=NA_REAL){  //default values
-
+List SporeDispCpp_MH(IntegerMatrix x, 
+                     IntegerMatrix S_UM, IntegerMatrix S_LD, //SUSCEPTIBLE
+                     IntegerMatrix S_AC, IntegerMatrix S_AR, 
+                     IntegerMatrix S_AE, IntegerMatrix S_PS, 
+                     IntegerMatrix S_SE, IntegerMatrix S_OK, 
+                     IntegerMatrix I_UM, IntegerMatrix I_LD, //INFECTED
+                     IntegerMatrix I_AC, IntegerMatrix I_AR, 
+                     IntegerMatrix I_AE, IntegerMatrix I_PS, 
+                     IntegerMatrix I_SE, IntegerMatrix I_OK, 
+                     IntegerMatrix N_LVE,
+                     NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
+                     double rs, String rtype, double scale1, 
+                     double scale2=NA_REAL,  //default values
+                     double gamma=NA_REAL)	//default values
+{  
+  
   // internal variables //
   int nrow = x.nrow(); 
   int ncol = x.ncol();
   int row0;
   int col0;
-
+  
   double dist;
   double theta;
   double PropS;
-
+  
   //for Rcpp random numbers
   RNGScope scope;
   
-  //Function rcauchy("rcauchy");
-  Function rvm("rvm");
   Function sample("sample");
-
+  //Function rcauchy("rcauchy");  
+  
   //LOOP THROUGH EACH CELL of the input matrix 'x' (this should be the study area)
   for (int row = 0; row < nrow; row++) {
     for (int col = 0; col < ncol; col++){
@@ -543,13 +381,178 @@ List SporeDispCppWind_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_OK
             else 
               dist = abs(R::rcauchy(0, scale2));
           }
-          else 
-            stop("The parameter rtype must be set to either 'Cauchy' or 'Cauchy Mixture'");
+          else stop("The parameter rtype must be set to either 'Cauchy' or 'Cauchy Mixture'");
+          
+          //GENERATE ANGLES (using Uniform distribution):
+          theta = R::runif(-PI, PI);
+          
+          //calculate new row and col position for the dispersed spore unit (using dist and theta)
+          row0 = row - round((dist * cos(theta)) / rs);
+          col0 = col + round((dist * sin(theta)) / rs);
+          
+          if (row0 < 0 || row0 >= nrow) continue;     //outside the region
+          if (col0 < 0 || col0 >= ncol) continue;     //outside the region
+          
+          //if distance is within same pixel challenge all SOD hosts, otherwise challenge UMCA only
+          if (row0 == row && col0 == col){
+            
+            //if susceptible hosts are present in cell, calculate prob of infection
+            if(S_UM(row0, col0) > 0 || S_OK(row0, col0) > 0 || S_LD(row0, col0) > 0 || S_AC(row0, col0) > 0 ||
+               S_AR(row0, col0) > 0 || S_AE(row0, col0) > 0 || S_PS(row0, col0) > 0 || S_SE(row0, col0) > 0){
+              
+              PropS = double(S_UM(row0, col0) + S_OK(row0, col0) + S_LD(row0, col0) + S_AC(row0, col0) + 
+                             S_AR(row0, col0) + S_AE(row0, col0) + S_PS(row0, col0) + S_SE(row0, col0) ) / N_LVE(row0, col0);
+                
+              double Prob = PropS * W(row0, col0); //weather suitability affects prob success!
+              double U = R::runif(0,1);			  
+                
+              //if U < Prob then one host will become infected
+              if (U < Prob){
+                  
+                double Prob_UM = double (S_UM(row0, col0)) / N_LVE(row0, col0); 
+                double Prob_LD = double (S_LD(row0, col0)) / N_LVE(row0, col0);
+                double Prob_AC = double (S_AC(row0, col0)) / N_LVE(row0, col0);
+                double Prob_AR = double (S_AR(row0, col0)) / N_LVE(row0, col0);
+                double Prob_AE = double (S_AE(row0, col0)) / N_LVE(row0, col0);
+                double Prob_PS = double (S_PS(row0, col0)) / N_LVE(row0, col0);
+                double Prob_SE = double (S_SE(row0, col0)) / N_LVE(row0, col0);
+                double Prob_OK = double (S_OK(row0, col0)) / N_LVE(row0, col0);
+                  
+                //sample which of the three hosts will be infected
+                IntegerVector sv = sample(seq_len(8), 1, false, NumericVector::create(Prob_UM, Prob_LD, Prob_AC, Prob_AR, Prob_AE, Prob_PS, Prob_SE, Prob_OK));
+                int s = sv[0];
+                if (s == 1){
+                  I_UM(row0, col0) = I_UM(row0, col0) + 1; //update infected UMCA
+                  S_UM(row0, col0) = S_UM(row0, col0) - 1; //update susceptible UMCA                                    
+                }else if (s == 2){
+                  I_LD(row0, col0) = I_LD(row0, col0) + 1; //update infected LIDE
+                  S_LD(row0, col0) = S_LD(row0, col0) - 1; //update susceptible LIDE                    
+                }else if (s == 3){
+                  I_AC(row0, col0) = I_AC(row0, col0) + 1; //update infected ACMA
+                  S_AC(row0, col0) = S_AC(row0, col0) - 1; //update susceptible ACMA     
+                }else if (s == 4){
+                  I_AR(row0, col0) = I_AR(row0, col0) + 1; //update infected ARME
+                  S_AR(row0, col0) = S_AR(row0, col0) - 1; //update susceptible ARME     				
+                }else if (s == 5){
+                  I_AE(row0, col0) = I_AE(row0, col0) + 1; //update infected AECA
+                  S_AE(row0, col0) = S_AE(row0, col0) - 1; //update susceptible AECA  				
+                }else if (s == 6){
+                  I_PS(row0, col0) = I_PS(row0, col0) + 1; //update infected PSME
+                  S_PS(row0, col0) = S_PS(row0, col0) - 1; //update susceptible PSME  				
+                }else if (s == 7){
+                  I_SE(row0, col0) = I_SE(row0, col0) + 1; //update infected SESE
+                  S_SE(row0, col0) = S_SE(row0, col0) - 1; //update susceptible SESE 				
+                }else{
+                  I_OK(row0, col0) = I_OK(row0, col0) + 1; //update infected OAKS
+                  S_OK(row0, col0) = S_OK(row0, col0) - 1; //update susceptible OAKS  				
+                }
+              }//ENF IF CHECK vs UNIFORM NUMBER				 			          
+              
+            //if no susceptible hosts are present inside current cell CONTINUE to next spore 
+            }else continue;
+          
+          }else{  //IF DISTANCE IS OUTSIDE THE SAME CELL
+              
+            if(S_UM(row0, col0) > 0){  //IF SUSCEPTIBLE HOST IS AVAILABLE
+              double PropS = double(S_UM(row0, col0)) / N_LVE(row0, col0); //fractions of given host in cell
+              double U = R::runif(0,1);
+              double Prob = PropS * W(row0, col0); //weather suitability affects prob success!
+              //if U < Prob then one host will become infected
+              if (U < Prob){
+                I_UM(row0, col0) = I_UM(row0, col0) + 1; //update infected UMCA
+                S_UM(row0, col0) = S_UM(row0, col0) - 1; //update susceptible UMCA             
+              }  
+            }//END IF
+          }//ENF IF DISTANCE CHECK  
+            
+        }//END LOOP OVER ALL SPORES IN CURRENT CELL GRID     
+      }//END IF SPORES IN CURRENT CELL
+    }   
+  }//END LOOP OVER ALL GRID CELLS
+    
+  //return List::create(Named("I")=I, Named("S")=S);
+  return List::create(
+    _["S_UM"] = S_UM, 
+    _["I_UM"] = I_UM,
+    _["S_OK"] = S_OK, 
+    _["I_OK"] = I_OK,
+    _["S_LD"] = S_LD, 
+    _["I_LD"] = I_LD,
+    _["S_AC"] = S_AC, 
+    _["I_AC"] = I_AC,
+    _["S_AR"] = S_AR, 
+    _["I_AR"] = I_AR,
+    _["S_AE"] = S_AE, 
+    _["I_AE"] = I_AE,	
+    _["S_PS"] = S_PS, 
+    _["I_PS"] = I_PS,
+    _["S_SE"] = S_SE, 
+    _["I_SE"] = I_SE	
+  );
+    
+} //END OF FUNCTION				  
+  
+// [[Rcpp::export]]
+List SporeDispCppWind_MH(IntegerMatrix x, 
+                         IntegerMatrix S_UM, IntegerMatrix S_LD, //SUSCEPTIBLE
+                         IntegerMatrix S_AC, IntegerMatrix S_AR, 
+                         IntegerMatrix S_AE, IntegerMatrix S_PS, 
+                         IntegerMatrix S_SE, IntegerMatrix S_OK, 
+                         IntegerMatrix I_UM, IntegerMatrix I_LD, //INFECTED
+                         IntegerMatrix I_AC, IntegerMatrix I_AR, 
+                         IntegerMatrix I_AE, IntegerMatrix I_PS, 
+                         IntegerMatrix I_SE, IntegerMatrix I_OK, 
+                         IntegerMatrix N_LVE,
+                         NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
+                         double rs, String rtype, double scale1, 
+                         String wdir, int kappa,
+                         double scale2=NA_REAL,  //default values
+                         double gamma=NA_REAL)   //default values
+{ 
+    
+  // internal variables //
+  int nrow = x.nrow(); 
+  int ncol = x.ncol();
+  int row0;
+  int col0;
+    
+  double dist;
+  double theta;
+  double PropS;
+    
+  //for Rcpp random numbers
+  RNGScope scope;
+    
+  //Function rcauchy("rcauchy");
+  Function rvm("rvm");
+  Function sample("sample");
+    
+  //LOOP THROUGH EACH CELL of the input matrix 'x' (this should be the study area)
+  for (int row = 0; row < nrow; row++) {
+    for (int col = 0; col < ncol; col++){
         
+      if(x(row,col) > 0){  //if spores in cell (row,col) > 0, disperse
+          
+        for(int sp = 1; (sp <= x(row,col)); sp++){
+            
+          //GENERATE DISTANCES:
+          if (rtype == "Cauchy") 
+            dist = abs(R::rcauchy(0, scale1));
+          else if (rtype == "Cauchy Mixture"){
+            if (gamma >= 1 || gamma <= 0) stop("The parameter gamma must range between (0-1)");
+            NumericVector fv = sample(Range(1, 2), 1, false, NumericVector::create(gamma, 1-gamma));
+            int f = fv[0];
+            if(f == 1) 
+              dist = abs(R::rcauchy(0, scale1));
+            else 
+              dist = abs(R::rcauchy(0, scale2));
+          }
+          else stop("The parameter rtype must be set to either 'Cauchy' or 'Cauchy Mixture'");
+            
           //GENERATE ANGLES (using Von Mises distribution):
           if(kappa <= 0)  // kappa=concentration
             stop("kappa must be greater than zero!");
-          
+            
           //predominant wind dir
           if (wdir == "N") 
             theta = as<double>(rvm(1, 0 * (PI/180), kappa));  
@@ -567,54 +570,78 @@ List SporeDispCppWind_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_OK
             theta = as<double>(rvm(1, 270 * (PI/180), kappa));  
           else
             theta = as<double>(rvm(1, 315 * (PI/180), kappa));
-
-          
+            
           //calculate new row and col position for the dispersed spore unit (using dist and theta)
           row0 = row - round((dist * cos(theta)) / rs);
           col0 = col + round((dist * sin(theta)) / rs);
-          
+            
           if (row0 < 0 || row0 >= nrow) continue;     //outside the region
           if (col0 < 0 || col0 >= ncol) continue;     //outside the region
-          
+            
           //if distance is within same pixel challenge all SOD hosts, otherwise challenge UMCA only
           if (row0 == row && col0 == col){
-            
-            //if susceptible hosts are present in cell, calculate prob of infection
-            if(S_UM(row0, col0) > 0 || S_OK(row0, col0) > 0){
-    	        
-              int hostTot = int(S_UM(row0, col0) + S_OK(row0, col0) + I_UM(row0, col0) + I_OK(row0, col0));
-			        PropS = double(S_UM(row0, col0) + S_OK(row0, col0)) / (hostTot + IMM(row0, col0));              
               
-              double U = R::runif(0,1);
+            //if susceptible hosts are present in cell, calculate prob of infection
+            if(S_UM(row0, col0) > 0 || S_OK(row0, col0) > 0 || S_LD(row0, col0) > 0 || S_AC(row0, col0) > 0 ||
+               S_AR(row0, col0) > 0 || S_AE(row0, col0) > 0 || S_PS(row0, col0) > 0 || S_SE(row0, col0) > 0){
+                
+              PropS = double(S_UM(row0, col0) + S_OK(row0, col0) + S_LD(row0, col0) + S_AC(row0, col0) + 
+                             S_AR(row0, col0) + S_AE(row0, col0) + S_PS(row0, col0) + S_SE(row0, col0) ) / N_LVE(row0, col0);
+                  
               double Prob = PropS * W(row0, col0); //weather suitability affects prob success!
-
+              double U = R::runif(0,1);			  
+                  
               //if U < Prob then one host will become infected
               if (U < Prob){
-                
-                double PropS_UM = double(S_UM(row0, col0)) / (S_UM(row0, col0) + S_OK(row0, col0)); //fractions of susceptible host in cell
-                double PropS_OK = double(S_OK(row0, col0)) / (S_UM(row0, col0) + S_OK(row0, col0));
-                
+                    
+                double Prob_UM = double (S_UM(row0, col0)) / N_LVE(row0, col0); 
+                double Prob_LD = double (S_LD(row0, col0)) / N_LVE(row0, col0);
+                double Prob_AC = double (S_AC(row0, col0)) / N_LVE(row0, col0);
+                double Prob_AR = double (S_AR(row0, col0)) / N_LVE(row0, col0);
+                double Prob_AE = double (S_AE(row0, col0)) / N_LVE(row0, col0);
+                double Prob_PS = double (S_PS(row0, col0)) / N_LVE(row0, col0);
+                double Prob_SE = double (S_SE(row0, col0)) / N_LVE(row0, col0);
+                double Prob_OK = double (S_OK(row0, col0)) / N_LVE(row0, col0);
+                    
                 //sample which of the three hosts will be infected
-                NumericVector sv = sample(NumericVector::create(1, 2), 1, false, NumericVector::create(PropS_UM, PropS_OK));
+                IntegerVector sv = sample(seq_len(8), 1, false, NumericVector::create(Prob_UM, Prob_LD, Prob_AC, Prob_AR, Prob_AE, Prob_PS, Prob_SE, Prob_OK));
                 int s = sv[0];
                 if (s == 1){
                   I_UM(row0, col0) = I_UM(row0, col0) + 1; //update infected UMCA
                   S_UM(row0, col0) = S_UM(row0, col0) - 1; //update susceptible UMCA                                    
+                }else if (s == 2){
+                  I_LD(row0, col0) = I_LD(row0, col0) + 1; //update infected LIDE
+                  S_LD(row0, col0) = S_LD(row0, col0) - 1; //update susceptible LIDE                    
+                }else if (s == 3){
+                  I_AC(row0, col0) = I_AC(row0, col0) + 1; //update infected ACMA
+                  S_AC(row0, col0) = S_AC(row0, col0) - 1; //update susceptible ACMA     
+                }else if (s == 4){
+                  I_AR(row0, col0) = I_AR(row0, col0) + 1; //update infected ARME
+                  S_AR(row0, col0) = S_AR(row0, col0) - 1; //update susceptible ARME     				
+                }else if (s == 5){
+                  I_AE(row0, col0) = I_AE(row0, col0) + 1; //update infected AECA
+                  S_AE(row0, col0) = S_AE(row0, col0) - 1; //update susceptible AECA  				
+                }else if (s == 6){
+                  I_PS(row0, col0) = I_PS(row0, col0) + 1; //update infected PSME
+                  S_PS(row0, col0) = S_PS(row0, col0) - 1; //update susceptible PSME  				
+                }else if (s == 7){
+                  I_SE(row0, col0) = I_SE(row0, col0) + 1; //update infected SESE
+                  S_SE(row0, col0) = S_SE(row0, col0) - 1; //update susceptible SESE 				
                 }else{
-                  I_OK(row0, col0) = I_OK(row0, col0) + 1; //update infected QUKE
-                  S_OK(row0, col0) = S_OK(row0, col0) - 1; //update susceptible QUKE                    
-                } 
-              }//ENF IF INFECTION LEVEL II 
+                  I_OK(row0, col0) = I_OK(row0, col0) + 1; //update infected OAKS
+                  S_OK(row0, col0) = S_OK(row0, col0) - 1; //update susceptible OAKS  				
+                }
+              }//ENF IF CHECK vs UNIFORM NUMBER				 			          
               
-            }//ENF IF          
-          
-          }else{
-
-            //if UMCA-only susceptibles are present in cell, calculate prob of infection
-            if(S_UM(row0, col0) > 0){
-              double PropS_UM = double(S_UM(row0, col0)) / (S_UM(row0, col0) + I_UM(row0, col0) + IMM(row0, col0)); //fractions of given host in cell
+              //if no susceptible hosts are present inside current cell CONTINUE to next spore 
+            }else continue;
+            
+          }else{  //IF DISTANCE IS OUTSIDE THE SAME CELL
+            
+            if(S_UM(row0, col0) > 0){  //IF SUSCEPTIBLE HOST IS AVAILABLE
+              double PropS = double(S_UM(row0, col0)) / N_LVE(row0, col0); //fractions of given host in cell
               double U = R::runif(0,1);
-              double Prob = PropS_UM * W(row0, col0); //weather suitability affects prob success!
+              double Prob = PropS * W(row0, col0); //weather suitability affects prob success!
               //if U < Prob then one host will become infected
               if (U < Prob){
                 I_UM(row0, col0) = I_UM(row0, col0) + 1; //update infected UMCA
@@ -622,25 +649,31 @@ List SporeDispCppWind_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_OK
               }  
             }//END IF
           }//ENF IF DISTANCE CHECK  
-        
-        }//END LOOP OVER ALL SPORES IN CURRENT CELL GRID
-       
-       
-      }//END IF 
-      
+          
+        }//END LOOP OVER ALL SPORES IN CURRENT CELL GRID     
+      }//END IF SPORES IN CURRENT CELL
     }   
   }//END LOOP OVER ALL GRID CELLS
-
+  
   //return List::create(Named("I")=I, Named("S")=S);
   return List::create(
     _["S_UM"] = S_UM, 
     _["I_UM"] = I_UM,
     _["S_OK"] = S_OK, 
-    _["I_OK"] = I_OK   
+    _["I_OK"] = I_OK,
+    _["S_LD"] = S_LD, 
+    _["I_LD"] = I_LD,
+    _["S_AC"] = S_AC, 
+    _["I_AC"] = I_AC,
+    _["S_AR"] = S_AR, 
+    _["I_AR"] = I_AR,
+    _["S_AE"] = S_AE, 
+    _["I_AE"] = I_AE,	
+    _["S_PS"] = S_PS, 
+    _["I_PS"] = I_PS,
+    _["S_SE"] = S_SE, 
+    _["I_SE"] = I_SE	
   );
   
-}
-
-
-
-
+} //END OF FUNCTION		
+    
