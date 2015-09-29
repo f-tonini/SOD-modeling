@@ -400,15 +400,16 @@ List SporeDispCpp_MH(IntegerMatrix x,
             if(S_UM(row0, col0) > 0 || S_OK(row0, col0) > 0 || S_LD(row0, col0) > 0 || S_AC(row0, col0) > 0 ||
                S_AR(row0, col0) > 0 || S_AE(row0, col0) > 0 || S_PS(row0, col0) > 0 || S_SE(row0, col0) > 0){
               
+              //WHAT IS THE PROBABILITY THAT A SPORE HITS ANY SUSCEPTIBLE HOST?
               PropS = double(S_UM(row0, col0) + S_OK(row0, col0) + S_LD(row0, col0) + S_AC(row0, col0) + 
                              S_AR(row0, col0) + S_AE(row0, col0) + S_PS(row0, col0) + S_SE(row0, col0) ) / N_LVE(row0, col0);
                 
-              double Prob = PropS * W(row0, col0); //weather suitability affects prob success!
               double U = R::runif(0,1);			  
                 
-              //if U < Prob then one host will become infected
-              if (U < Prob){
-                  
+              //if U < PropS then one of the susceptible trees will get hit
+              if (U < PropS){
+                
+                //WHICH SUSCEPTIBLE TREE GETS HIT? CALCULATE PROBABILITY WEIGHTS
                 double Prob_UM = double (S_UM(row0, col0)) / N_LVE(row0, col0); 
                 double Prob_LD = double (S_LD(row0, col0)) / N_LVE(row0, col0);
                 double Prob_AC = double (S_AC(row0, col0)) / N_LVE(row0, col0);
@@ -417,54 +418,108 @@ List SporeDispCpp_MH(IntegerMatrix x,
                 double Prob_PS = double (S_PS(row0, col0)) / N_LVE(row0, col0);
                 double Prob_SE = double (S_SE(row0, col0)) / N_LVE(row0, col0);
                 double Prob_OK = double (S_OK(row0, col0)) / N_LVE(row0, col0);
-                  
-                //sample which of the three hosts will be infected
-                IntegerVector sv = sample(seq_len(8), 1, false, NumericVector::create(Prob_UM, Prob_LD, Prob_AC, Prob_AR, Prob_AE, Prob_PS, Prob_SE, Prob_OK));
+                
+                //sample which of the three hosts will be hit given probability weights
+                IntegerVector sv = sample(seq_len(8), 1, false, 
+                                          NumericVector::create(Prob_UM, Prob_LD, Prob_AC, Prob_AR, 
+                                                                Prob_AE, Prob_PS, Prob_SE, Prob_OK));
+                
+                //WHAT IS THE PROBABILITY THAT A SPORE TURNS INTO AN INFECTION, GIVEN THAT A SUSCEPTIBLE TREE HAS BEEN HIT?
+                //This depends on both the local weather AND the host competency score (relative to UMCA and OAKS)
                 int s = sv[0];
                 if (s == 1){
-                  I_UM(row0, col0) = I_UM(row0, col0) + 1; //update infected UMCA
-                  S_UM(row0, col0) = S_UM(row0, col0) - 1; //update susceptible UMCA                                    
+                  double ProbINF = Prob_UM * W(row0, col0);
+                  if (U < ProbINF){
+                    I_UM(row0, col0) = I_UM(row0, col0) + 1; //update infected UMCA
+                    S_UM(row0, col0) = S_UM(row0, col0) - 1; //update susceptible UMCA
+                  }
                 }else if (s == 2){
-                  I_LD(row0, col0) = I_LD(row0, col0) + 1; //update infected LIDE
-                  S_LD(row0, col0) = S_LD(row0, col0) - 1; //update susceptible LIDE                    
+                  double ProbINF = Prob_LD * W(row0, col0);
+                  if (U < ProbINF){
+                    I_LD(row0, col0) = I_LD(row0, col0) + 1; //update infected LIDE
+                    S_LD(row0, col0) = S_LD(row0, col0) - 1; //update susceptible LIDE                    
+                  }
                 }else if (s == 3){
-                  I_AC(row0, col0) = I_AC(row0, col0) + 1; //update infected ACMA
-                  S_AC(row0, col0) = S_AC(row0, col0) - 1; //update susceptible ACMA     
+                  double ProbINF = Prob_AC * W(row0, col0) * 0.1;  //hardcoded coeff to decrease prob.infection (transmission)
+                  if (U < ProbINF){
+                    I_AC(row0, col0) = I_AC(row0, col0) + 1; //update infected ACMA
+                    S_AC(row0, col0) = S_AC(row0, col0) - 1; //update susceptible ACMA     
+                  }
                 }else if (s == 4){
-                  I_AR(row0, col0) = I_AR(row0, col0) + 1; //update infected ARME
-                  S_AR(row0, col0) = S_AR(row0, col0) - 1; //update susceptible ARME     				
+                  double ProbINF = Prob_AR * W(row0, col0) * 0.1;  //hardcoded coeff to decrease prob.infection (transmission)
+                  if (U < ProbINF){
+                    I_AR(row0, col0) = I_AR(row0, col0) + 1; //update infected ARME
+                    S_AR(row0, col0) = S_AR(row0, col0) - 1; //update susceptible ARME     				
+                  }
                 }else if (s == 5){
-                  I_AE(row0, col0) = I_AE(row0, col0) + 1; //update infected AECA
-                  S_AE(row0, col0) = S_AE(row0, col0) - 1; //update susceptible AECA  				
+                  double ProbINF = Prob_AE * W(row0, col0) * 0.1;  //hardcoded coeff to decrease prob.infection (transmission)
+                  if (U < ProbINF){
+                    I_AE(row0, col0) = I_AE(row0, col0) + 1; //update infected AECA
+                    S_AE(row0, col0) = S_AE(row0, col0) - 1; //update susceptible AECA  				
+                  }
                 }else if (s == 6){
-                  I_PS(row0, col0) = I_PS(row0, col0) + 1; //update infected PSME
-                  S_PS(row0, col0) = S_PS(row0, col0) - 1; //update susceptible PSME  				
+                  double ProbINF = Prob_PS * W(row0, col0) * 0.1;  //hardcoded coeff to decrease prob.infection (transmission)
+                  if (U < ProbINF){
+                    I_PS(row0, col0) = I_PS(row0, col0) + 1; //update infected PSME
+                    S_PS(row0, col0) = S_PS(row0, col0) - 1; //update susceptible PSME  				
+                  }
                 }else if (s == 7){
-                  I_SE(row0, col0) = I_SE(row0, col0) + 1; //update infected SESE
-                  S_SE(row0, col0) = S_SE(row0, col0) - 1; //update susceptible SESE 				
+                  double ProbINF = Prob_SE * W(row0, col0) * 0.1;  //hardcoded coeff to decrease prob.infection (transmission)
+                  if (U < ProbINF){
+                    I_SE(row0, col0) = I_SE(row0, col0) + 1; //update infected SESE
+                    S_SE(row0, col0) = S_SE(row0, col0) - 1; //update susceptible SESE 				
+                  }
                 }else{
-                  I_OK(row0, col0) = I_OK(row0, col0) + 1; //update infected OAKS
-                  S_OK(row0, col0) = S_OK(row0, col0) - 1; //update susceptible OAKS  				
+                  double ProbINF = Prob_OK * W(row0, col0) * 0.75; //hardcoded coeff to decrease prob.infection (transmission)
+                  if (U < ProbINF){
+                    I_OK(row0, col0) = I_OK(row0, col0) + 1; //update infected OAKS
+                    S_OK(row0, col0) = S_OK(row0, col0) - 1; //update susceptible OAKS  				
+                  }
                 }
-              }//ENF IF CHECK vs UNIFORM NUMBER				 			          
+              }//END IF CHECK vs UNIFORM NUMBER	                
               
-            //if no susceptible hosts are present inside current cell CONTINUE to next spore 
-            }else continue;
+            }//END IF NO SUSCEPTIBLE PRESENT IN CELL
           
           }else{  //IF DISTANCE IS OUTSIDE THE SAME CELL
               
-            if(S_UM(row0, col0) > 0){  //IF SUSCEPTIBLE HOST IS AVAILABLE
-              double PropS = double(S_UM(row0, col0)) / N_LVE(row0, col0); //fractions of given host in cell
-              double U = R::runif(0,1);
-              double Prob = PropS * W(row0, col0); //weather suitability affects prob success!
-              //if U < Prob then one host will become infected
-              if (U < Prob){
-                I_UM(row0, col0) = I_UM(row0, col0) + 1; //update infected UMCA
-                S_UM(row0, col0) = S_UM(row0, col0) - 1; //update susceptible UMCA             
-              }  
-            }//END IF
-          }//ENF IF DISTANCE CHECK  
-            
+            if(S_UM(row0, col0) > 0 || S_LD(row0, col0) > 0){  //IF SUSCEPTIBLE HOST IS AVAILABLE (UMCA OR LIDE)
+              
+              //WHAT IS THE PROBABILITY THAT A SPORE HITS ANY SUSCEPTIBLE HOST?
+              PropS = double(S_UM(row0, col0) + S_LD(row0, col0)) / N_LVE(row0, col0);
+                 
+              double U = R::runif(0,1);		
+
+              //if U < ProbS then one of the susceptible trees will get hit
+              if (U < PropS){
+                
+                //WHICH SUSCEPTIBLE TREE GETS HIT? CALCULATE PROBABILITY WEIGHTS
+                double Prob_UM = double (S_UM(row0, col0)) / N_LVE(row0, col0); 
+                double Prob_LD = double (S_LD(row0, col0)) / N_LVE(row0, col0);
+
+                //sample which of the three hosts will be hit given probability weights
+                IntegerVector sv = sample(seq_len(2), 1, false, 
+                                          NumericVector::create(Prob_UM, Prob_LD));
+                
+                //WHAT IS THE PROBABILITY THAT A SPORE TURNS INTO AN INFECTION, GIVEN THAT A SUSCEPTIBLE TREE HAS BEEN HIT?
+                //This depends on both the local weather AND the host competency score (relative to UMCA and OAKS)
+                int s = sv[0];
+                if (s == 1){
+                  double ProbINF = Prob_UM * W(row0, col0);
+                  if (U < ProbINF){
+                    I_UM(row0, col0) = I_UM(row0, col0) + 1; //update infected UMCA
+                    S_UM(row0, col0) = S_UM(row0, col0) - 1; //update susceptible UMCA
+                  }
+                }else{
+                  double ProbINF = Prob_LD * W(row0, col0);
+                  if (U < ProbINF){
+                    I_LD(row0, col0) = I_LD(row0, col0) + 1; //update infected LIDE
+                    S_LD(row0, col0) = S_LD(row0, col0) - 1; //update susceptible LIDE                    
+                  }                
+                }  
+              }//END IF U < PROB
+            }//ENF IF S > 0  
+          } //END IF DISTANCE CHECK
+          
         }//END LOOP OVER ALL SPORES IN CURRENT CELL GRID     
       }//END IF SPORES IN CURRENT CELL
     }   
@@ -585,15 +640,16 @@ List SporeDispCppWind_MH(IntegerMatrix x,
             if(S_UM(row0, col0) > 0 || S_OK(row0, col0) > 0 || S_LD(row0, col0) > 0 || S_AC(row0, col0) > 0 ||
                S_AR(row0, col0) > 0 || S_AE(row0, col0) > 0 || S_PS(row0, col0) > 0 || S_SE(row0, col0) > 0){
                 
+              //WHAT IS THE PROBABILITY THAT A SPORE HITS ANY SUSCEPTIBLE HOST?
               PropS = double(S_UM(row0, col0) + S_OK(row0, col0) + S_LD(row0, col0) + S_AC(row0, col0) + 
                              S_AR(row0, col0) + S_AE(row0, col0) + S_PS(row0, col0) + S_SE(row0, col0) ) / N_LVE(row0, col0);
-                  
-              double Prob = PropS * W(row0, col0); //weather suitability affects prob success!
+                
               double U = R::runif(0,1);			  
+                
+              //if U < PropS then one of the susceptible trees will get hit
+              if (U < PropS){
                   
-              //if U < Prob then one host will become infected
-              if (U < Prob){
-                    
+                //WHICH SUSCEPTIBLE TREE GETS HIT? CALCULATE PROBABILITY WEIGHTS
                 double Prob_UM = double (S_UM(row0, col0)) / N_LVE(row0, col0); 
                 double Prob_LD = double (S_LD(row0, col0)) / N_LVE(row0, col0);
                 double Prob_AC = double (S_AC(row0, col0)) / N_LVE(row0, col0);
@@ -602,53 +658,105 @@ List SporeDispCppWind_MH(IntegerMatrix x,
                 double Prob_PS = double (S_PS(row0, col0)) / N_LVE(row0, col0);
                 double Prob_SE = double (S_SE(row0, col0)) / N_LVE(row0, col0);
                 double Prob_OK = double (S_OK(row0, col0)) / N_LVE(row0, col0);
-                    
-                //sample which of the three hosts will be infected
-                IntegerVector sv = sample(seq_len(8), 1, false, NumericVector::create(Prob_UM, Prob_LD, Prob_AC, Prob_AR, Prob_AE, Prob_PS, Prob_SE, Prob_OK));
+                  
+                //sample which of the three hosts will be hit given probability weights
+                IntegerVector sv = sample(seq_len(8), 1, false, 
+                                          NumericVector::create(Prob_UM, Prob_LD, Prob_AC, Prob_AR, 
+                                                                Prob_AE, Prob_PS, Prob_SE, Prob_OK));
+                  
                 int s = sv[0];
                 if (s == 1){
-                  I_UM(row0, col0) = I_UM(row0, col0) + 1; //update infected UMCA
-                  S_UM(row0, col0) = S_UM(row0, col0) - 1; //update susceptible UMCA                                    
+                  double ProbINF = Prob_UM * W(row0, col0);
+                  if (U < ProbINF){
+                    I_UM(row0, col0) = I_UM(row0, col0) + 1; //update infected UMCA
+                    S_UM(row0, col0) = S_UM(row0, col0) - 1; //update susceptible UMCA
+                  }
                 }else if (s == 2){
-                  I_LD(row0, col0) = I_LD(row0, col0) + 1; //update infected LIDE
-                  S_LD(row0, col0) = S_LD(row0, col0) - 1; //update susceptible LIDE                    
+                  double ProbINF = Prob_LD * W(row0, col0);
+                  if (U < ProbINF){
+                    I_LD(row0, col0) = I_LD(row0, col0) + 1; //update infected LIDE
+                    S_LD(row0, col0) = S_LD(row0, col0) - 1; //update susceptible LIDE                    
+                  }
                 }else if (s == 3){
-                  I_AC(row0, col0) = I_AC(row0, col0) + 1; //update infected ACMA
-                  S_AC(row0, col0) = S_AC(row0, col0) - 1; //update susceptible ACMA     
+                  double ProbINF = Prob_AC * W(row0, col0) * 0.1;  //hardcoded coeff to decrease prob.infection (transmission)
+                  if (U < ProbINF){
+                    I_AC(row0, col0) = I_AC(row0, col0) + 1; //update infected ACMA
+                    S_AC(row0, col0) = S_AC(row0, col0) - 1; //update susceptible ACMA     
+                  }
                 }else if (s == 4){
-                  I_AR(row0, col0) = I_AR(row0, col0) + 1; //update infected ARME
-                  S_AR(row0, col0) = S_AR(row0, col0) - 1; //update susceptible ARME     				
+                  double ProbINF = Prob_AR * W(row0, col0) * 0.1;  //hardcoded coeff to decrease prob.infection (transmission)
+                  if (U < ProbINF){
+                    I_AR(row0, col0) = I_AR(row0, col0) + 1; //update infected ARME
+                    S_AR(row0, col0) = S_AR(row0, col0) - 1; //update susceptible ARME     				
+                  }
                 }else if (s == 5){
-                  I_AE(row0, col0) = I_AE(row0, col0) + 1; //update infected AECA
-                  S_AE(row0, col0) = S_AE(row0, col0) - 1; //update susceptible AECA  				
+                  double ProbINF = Prob_AE * W(row0, col0) * 0.1;  //hardcoded coeff to decrease prob.infection (transmission)
+                  if (U < ProbINF){
+                    I_AE(row0, col0) = I_AE(row0, col0) + 1; //update infected AECA
+                    S_AE(row0, col0) = S_AE(row0, col0) - 1; //update susceptible AECA  				
+                  }
                 }else if (s == 6){
-                  I_PS(row0, col0) = I_PS(row0, col0) + 1; //update infected PSME
-                  S_PS(row0, col0) = S_PS(row0, col0) - 1; //update susceptible PSME  				
+                  double ProbINF = Prob_PS * W(row0, col0) * 0.1;  //hardcoded coeff to decrease prob.infection (transmission)
+                  if (U < ProbINF){
+                    I_PS(row0, col0) = I_PS(row0, col0) + 1; //update infected PSME
+                    S_PS(row0, col0) = S_PS(row0, col0) - 1; //update susceptible PSME  				
+                  }
                 }else if (s == 7){
-                  I_SE(row0, col0) = I_SE(row0, col0) + 1; //update infected SESE
-                  S_SE(row0, col0) = S_SE(row0, col0) - 1; //update susceptible SESE 				
+                  double ProbINF = Prob_SE * W(row0, col0) * 0.1;  //hardcoded coeff to decrease prob.infection (transmission)
+                  if (U < ProbINF){
+                    I_SE(row0, col0) = I_SE(row0, col0) + 1; //update infected SESE
+                    S_SE(row0, col0) = S_SE(row0, col0) - 1; //update susceptible SESE 				
+                  }
                 }else{
-                  I_OK(row0, col0) = I_OK(row0, col0) + 1; //update infected OAKS
-                  S_OK(row0, col0) = S_OK(row0, col0) - 1; //update susceptible OAKS  				
+                  double ProbINF = Prob_OK * W(row0, col0) * 0.75; //hardcoded coeff to decrease prob.infection (transmission)
+                  if (U < ProbINF){
+                    I_OK(row0, col0) = I_OK(row0, col0) + 1; //update infected OAKS
+                    S_OK(row0, col0) = S_OK(row0, col0) - 1; //update susceptible OAKS  				
+                  }
                 }
-              }//ENF IF CHECK vs UNIFORM NUMBER				 			          
+              }//END IF CHECK vs UNIFORM NUMBER	                
               
-              //if no susceptible hosts are present inside current cell CONTINUE to next spore 
-            }else continue;
+            }//END IF NO SUSCEPTIBLE PRESENT IN CELL
             
           }else{  //IF DISTANCE IS OUTSIDE THE SAME CELL
             
-            if(S_UM(row0, col0) > 0){  //IF SUSCEPTIBLE HOST IS AVAILABLE
-              double PropS = double(S_UM(row0, col0)) / N_LVE(row0, col0); //fractions of given host in cell
-              double U = R::runif(0,1);
-              double Prob = PropS * W(row0, col0); //weather suitability affects prob success!
-              //if U < Prob then one host will become infected
-              if (U < Prob){
-                I_UM(row0, col0) = I_UM(row0, col0) + 1; //update infected UMCA
-                S_UM(row0, col0) = S_UM(row0, col0) - 1; //update susceptible UMCA             
-              }  
-            }//END IF
-          }//ENF IF DISTANCE CHECK  
+            if(S_UM(row0, col0) > 0 || S_LD(row0, col0) > 0){  //IF SUSCEPTIBLE HOST IS AVAILABLE (UMCA OR LIDE)
+              
+              //WHAT IS THE PROBABILITY THAT A SPORE HITS ANY SUSCEPTIBLE HOST?
+              PropS = double(S_UM(row0, col0) + S_LD(row0, col0)) / N_LVE(row0, col0);
+              
+              double U = R::runif(0,1);		
+              
+              //if U < ProbS then one of the susceptible trees will get hit
+              if (U < PropS){
+                
+                //WHICH SUSCEPTIBLE TREE GETS HIT? CALCULATE PROBABILITY WEIGHTS
+                double Prob_UM = double (S_UM(row0, col0)) / N_LVE(row0, col0); 
+                double Prob_LD = double (S_LD(row0, col0)) / N_LVE(row0, col0);
+                
+                //sample which of the three hosts will be hit given probability weights
+                IntegerVector sv = sample(seq_len(2), 1, false, 
+                                          NumericVector::create(Prob_UM, Prob_LD));
+                
+                //WHAT IS THE PROBABILITY THAT A SPORE TURNS INTO AN INFECTION, GIVEN THAT A SUSCEPTIBLE TREE HAS BEEN HIT?
+                //This depends on both the local weather AND the host competency score (relative to UMCA and OAKS)
+                int s = sv[0];
+                if (s == 1){
+                  double ProbINF = Prob_UM * W(row0, col0);
+                  if (U < ProbINF){
+                    I_UM(row0, col0) = I_UM(row0, col0) + 1; //update infected UMCA
+                    S_UM(row0, col0) = S_UM(row0, col0) - 1; //update susceptible UMCA
+                  }
+                }else{
+                  double ProbINF = Prob_LD * W(row0, col0);
+                  if (U < ProbINF){
+                    I_LD(row0, col0) = I_LD(row0, col0) + 1; //update infected LIDE
+                    S_LD(row0, col0) = S_LD(row0, col0) - 1; //update susceptible LIDE                    
+                  }                
+                }  
+              }//END IF U < PROB
+            }//ENF IF S > 0  
+          } //END IF DISTANCE CHECK
           
         }//END LOOP OVER ALL SPORES IN CURRENT CELL GRID     
       }//END IF SPORES IN CURRENT CELL
