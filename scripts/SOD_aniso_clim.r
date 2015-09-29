@@ -60,7 +60,7 @@ S_umca <- as.matrix(S_umca_rast)
 I_umca <- as.matrix(I_umca_rast)
 S_oaks <- as.matrix(S_oaks_rast)
 I_oaks <- as.matrix(I_oaks_rast)
-IMM_matr <- as.matrix(IMM_rast)
+N_live <- as.matrix(lvtree_rast)
 
 ##background satellite image for plotting
 bkr_img <- raster("./layers/ortho_5m_color.tif") 
@@ -166,11 +166,11 @@ for (tt in tstep){
       
       #Check if predominant wind direction has been specified correctly:
       if (!(pwdir %in% c('N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'))) stop('A predominant wind direction must be specified: N, NE, E, SE, S, SW, W, NW')
-      out <- SporeDispCppWind_mh(spores_mat, S_UM=S_umca, S_OK=S_oaks, I_UM=I_umca, I_OK=I_oaks, IMM=IMM_matr, 
+      out <- SporeDispCppWind_mh(spores_mat, S_UM=S_umca, S_OK=S_oaks, I_UM=I_umca, I_OK=I_oaks, N_LVE=N_live, 
                                  W, rs=res_win, rtype='Cauchy', scale1=20.57, wdir=pwdir, kappa=2)
     
     }else{
-      out <- SporeDispCpp_mh(spores_mat, S_UM=S_umca, S_OK=S_oaks, I_UM=I_umca, I_OK=I_oaks, IMM=IMM_matr,
+      out <- SporeDispCpp_mh(spores_mat, S_UM=S_umca, S_OK=S_oaks, I_UM=I_umca, I_OK=I_oaks, N_LVE=N_live,
                              W, rs=res_win, rtype='Cauchy', scale1=20.57) ##TO DO
     }  
     
