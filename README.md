@@ -40,8 +40,6 @@ Each parameter in the argument list is specified using either the *-shortflag* o
   
 **-lvt** or **--livetree** _input live tree (all) raster map_
 
-**-hi** or **--host_index** _your input host index raster_
-
 **-src** or **--sources** _initial sources of infection raster map_
 
 **-img** or **--image** _your background satellite raster image for plotting (use extention after file name, e.g. image.tif)_
