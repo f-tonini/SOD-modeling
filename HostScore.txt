@@ -1,0 +1,20 @@
+Host_score,Scientific_name,Common_name,LEMMA_ABBR
+10,Umbellularia californica,California Bay,UMCA
+5,Lithocarpus densiflorus,Tanoak,LIDE3
+3,Sequoia sempervirens,Redwood,SESE3
+1,Acer macrophyllum,Bigleaf Maple,ACMA3
+1,Aesculus californica,California Buckeye,AECA
+1,Arbutus menziesii,Madrone,ARME
+1,Pseudotsuga menziesii,Douglas fir,PSME
+0,Quercus agrifolia,Coast Live Oak,QUAG
+0,Quercus chrysolepis,Canyon Live Oak,QUCH2
+0,Quercus kelloggii,Black Oak,QUKE
+5,Rhododendron macrophyllum,Coast Rhododendron,NA
+5,Rhododendron occidentale,Western Azalea,NA
+5,Rhododendron spp.,Rhododendron species,NA
+1,Arctostaphylos manzanita,Common Manzanita,NA
+1,Heteromeles arbutifolia,Toyon,NA
+1,Lonicera hispidula,California Honeysuckle,NA
+1,Rhamnus californica,California Coffeeberry,NA
+1,Vaccinium ovatum,California Huckleberry,NA
+0,Quercus parvula var.shrevei,Shreve Oak,NA
