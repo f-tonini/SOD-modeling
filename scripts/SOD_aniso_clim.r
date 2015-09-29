@@ -111,7 +111,6 @@ if(any(S_psme[I_oaks > 0] > 0)) I_psme[I_oaks > 0] <- mapply(function(x,y) ifels
                                                              S_psme[I_oaks > 0], I_oaks[I_oaks > 0])
 if(any(S_sese[I_oaks > 0] > 0)) I_sese[I_oaks > 0] <- mapply(function(x,y) ifelse(x > y, min(c(x,y)), x), 
                                                              S_sese[I_oaks > 0], I_oaks[I_oaks > 0])
-
 ##update susceptible matrices by subtracting the initialized infections 
 S_umca <- S_umca - I_umca 
 S_lide <- S_lide - I_lide
@@ -129,7 +128,7 @@ bkr_img <- raster("./layers/ortho_5m_color.tif")
 
 ##Start-End date: 
 start <- 2000
-end <- 2008
+end <- 2014
 
 if (start > end) stop('start date must precede end date!!')
 
@@ -142,7 +141,6 @@ tstep <- as.character(seq(dd_start, dd_end, 'weeks'))
 formatting_str = paste("%0", floor( log10( length(tstep) ) ) + 1, "d", sep='')
 
 ##WEATHER SUITABILITY: read and stack weather suitability raster BEFORE running the simulation
-
 #weather coefficients
 mcf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2014.nc'),  varid = "Mcoef") #M = moisture;
 ccf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2014.nc'),  varid = "Ccoef") #C = temperature;
