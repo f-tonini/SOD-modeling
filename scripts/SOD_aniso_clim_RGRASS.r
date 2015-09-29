@@ -72,8 +72,6 @@ mx <- cellStats(oaks_rast, stat='max')
 #----> All live trees
 lvtree_rast <- readRAST(opt$livetree)
 lvtree_rast <- round(raster(lvtree_rast))
-#calculate trees that are SOD-immune:
-IMM_rast <- lvtree_rast - (umca_rast + oaks_rast) 
 
 #raster resolution
 res_win <- res(umca_rast)[1]
@@ -95,7 +93,7 @@ S_umca <- as.matrix(S_umca_rast)
 I_umca <- as.matrix(I_umca_rast)
 S_oaks <- as.matrix(S_oaks_rast)
 I_oaks <- as.matrix(I_oaks_rast)
-IMM_matr <- as.matrix(IMM_rast)
+N_live <- as.matrix(lvtree_rast)
 
 ##background satellite image for plotting
 bkr_img <- raster(paste('./layers/', opt$image, sep='')) 
@@ -117,25 +115,10 @@ formatting_str = paste("%0", floor( log10( length(tstep) ) ) + 1, "d", sep='')
 months_names = c('jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec')
 
 ##WEATHER SUITABILITY: read and stack weather suitability raster BEFORE running the simulation
-#list of ALL weather layers
-lst <- dir('./layers/weather', pattern='\\.img$', full.names=T)
 
-#strip and read the last available historical year
-last_yr <- as.numeric(unlist(strsplit(basename(tail(lst, n=1)),'_'))[1])
-if (start > last_yr) stop('start simulation date needs to be within the range of available historical data')
-
-#sublist of weather coefficients
-Mlst <- lst[grep("_m", lst)] #M = moisture; 
-Clst <- lst[grep("_c", lst)] #C = temperature;
-
-#read csv table with ranked historical years
-weather_rank <- read.table('./layers/weather/WeatherRanked.csv', header = T, stringsAsFactors = F, sep=',')
-
-##future weather scenarios: if current simulation year is past the available data, use future climate 
-##(1) reading GCM projections from another raster stack  ##TODO!!!
-##(2) using available historical COMPLETE years (1990-2007), ranked by suitability
-Mstack <- climGen(Mlst, start, end, weather_rank, opt$scenario) #M = moisture(precip)
-Cstack <- climGen(Clst, start, end, weather_rank, opt$scenario) #C =temperature(tmean)
+#weather coefficients
+mcf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2014.nc'),  varid = "Mcoef") #M = moisture;
+ccf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2014.nc'),  varid = "Ccoef") #C = temperature;
 
 ##Seasonality: Do you want the spread to be limited to certain months?
 ss <- opt$seasonal   #'YES' or 'NO'
@@ -223,10 +206,11 @@ for (tt in tstep){
     }
           
     #Total weather suitability:
-    W <- as.matrix(Mstack[[cnt]] * Cstack[[cnt]])
+    W <- mcf.array[,,cnt] * ccf.array[,,cnt]
     
     #GENERATE SPORES:  
     #integer matrix
+    set.seed(42)
     spores_mat <- SporeGenCpp(I_umca, W, rate = opt$spore_rate) #rate: spores/week for each infected host (4.4 default)
     
     #SPORE DISPERSAL:  
@@ -235,11 +219,11 @@ for (tt in tstep){
       
       #Check if predominant wind direction has been specified correctly:
       if (!(opt$pwdir %in% c('N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'))) stop('A predominant wind direction must be specified: N, NE, E, SE, S, SW, W, NW')
-      out <- SporeDispCppWind_mh(spores_mat, S_UM=S_umca, S_OK=S_oaks, I_UM=I_umca, I_OK=I_oaks, IMM=IMM_matr, 
+      out <- SporeDispCppWind_mh(spores_mat, S_UM=S_umca, S_OK=S_oaks, I_UM=I_umca, I_OK=I_oaks, N_LVE=N_live, 
                                  W, rs=res_win, rtype='Cauchy', scale1=20.57, wdir=opt$pwdir, kappa=2)
     
     }else{
-      out <- SporeDispCpp_mh(spores_mat, S_UM=S_umca, S_OK=S_oaks, I_UM=I_umca, I_OK=I_oaks, IMM=IMM_matr,
+      out <- SporeDispCpp_mh(spores_mat, S_UM=S_umca, S_OK=S_oaks, I_UM=I_umca, I_OK=I_oaks, N_LVE=N_live,
                              W, rs=res_win, rtype='Cauchy', scale1=20.57) ##TO DO
     }  
     
