@@ -269,7 +269,7 @@ List SporeDispCpp(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, NumericMatr
 
 // [[Rcpp::export]]
 List SporeDispCpp_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_OK, IntegerMatrix I_UM, IntegerMatrix I_OK, 
-                IntegerMatrix IMM, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
+                     IntegerMatrix N_LVE, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
                 double rs, String rtype, double scale1,
                 double scale2=NA_REAL,  //default values
                 double gamma=NA_REAL){  //default values
@@ -330,8 +330,7 @@ List SporeDispCpp_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_OK, In
             //if susceptible hosts are present in cell, calculate prob of infection
             if(S_UM(row0, col0) > 0 || S_OK(row0, col0) > 0){
   		        
-              int hostTot = int(S_UM(row0, col0) + S_OK(row0, col0) + I_UM(row0, col0) + I_OK(row0, col0));
-			        PropS = double(S_UM(row0, col0) + S_OK(row0, col0)) / (hostTot + IMM(row0, col0));              
+              PropS = double(S_UM(row0, col0) + S_OK(row0, col0)) / N_LVE(row0, col0);            
               
               double U = R::runif(0,1);
               double Prob = PropS * W(row0, col0); //weather suitability affects prob success!
@@ -360,7 +359,7 @@ List SporeDispCpp_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_OK, In
 
             //if UMCA-only susceptibles are present in cell, calculate prob of infection
             if(S_UM(row0, col0) > 0){
-              double PropS_UM = double(S_UM(row0, col0)) / (S_UM(row0, col0) + I_UM(row0, col0) + IMM(row0, col0)); //fractions of given host in cell
+              double PropS_UM = double(S_UM(row0, col0)) / N_LVE(row0, col0); //fractions of given host in cell
               double U = R::runif(0,1);
               double Prob = PropS_UM * W(row0, col0); //weather suitability affects prob success!
               //if U < Prob then one host will become infected
@@ -500,7 +499,7 @@ List SporeDispCppWind(IntegerMatrix x, IntegerMatrix S, IntegerMatrix I, Numeric
 
 // [[Rcpp::export]]
 List SporeDispCppWind_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_OK, IntegerMatrix I_UM, IntegerMatrix I_OK, 
-                IntegerMatrix IMM, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
+                         IntegerMatrix N_LVE, NumericMatrix W,   //use different name than the functions in myfunctions_SOD.r
                 double rs, String rtype, double scale1, 
                 String wdir, int kappa,
                 double scale2=NA_REAL,  //default values
@@ -582,8 +581,7 @@ List SporeDispCppWind_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_OK
             //if susceptible hosts are present in cell, calculate prob of infection
             if(S_UM(row0, col0) > 0 || S_OK(row0, col0) > 0){
     	        
-              int hostTot = int(S_UM(row0, col0) + S_OK(row0, col0) + I_UM(row0, col0) + I_OK(row0, col0));
-			        PropS = double(S_UM(row0, col0) + S_OK(row0, col0)) / (hostTot + IMM(row0, col0));              
+              PropS = double(S_UM(row0, col0) + S_OK(row0, col0)) / N_LVE(row0, col0);;              
               
               double U = R::runif(0,1);
               double Prob = PropS * W(row0, col0); //weather suitability affects prob success!
@@ -612,7 +610,7 @@ List SporeDispCppWind_mh(IntegerMatrix x, IntegerMatrix S_UM, IntegerMatrix S_OK
 
             //if UMCA-only susceptibles are present in cell, calculate prob of infection
             if(S_UM(row0, col0) > 0){
-              double PropS_UM = double(S_UM(row0, col0)) / (S_UM(row0, col0) + I_UM(row0, col0) + IMM(row0, col0)); //fractions of given host in cell
+              double PropS_UM = double(S_UM(row0, col0)) / N_LVE(row0, col0); //fractions of given host in cell
               double U = R::runif(0,1);
               double Prob = PropS_UM * W(row0, col0); //weather suitability affects prob success!
               //if U < Prob then one host will become infected
