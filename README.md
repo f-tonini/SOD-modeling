@@ -36,11 +36,21 @@ Each parameter in the argument list is specified using either the *-shortflag* o
 
 **-u** or **--umca** _input bay laurel (UMCA) raster map_
 
+**-ld** or **--lide** _input Tanoak (LIDE) raster map_  
+
+**-ac** or **--acma** _input Bigleaf Maple (ACMA) raster map_  
+
+**-ar** or **--arme** _input Madrone (ARME) raster map_  
+
+**-ae** or **--aeca** _input California Buckeye (AECA) raster map_  
+
+**-psm** or **--psme** _input Douglas fir (PSME) raster map_  
+
+**-se** or **--sese** _input Redwood (SESE) raster map_  
+
 **-ok** or **--oaks** _input SOD-oaks raster map_  
   
 **-lvt** or **--livetree** _input live tree (all) raster map_
-
-**-hi** or **--host_index** _your input host index raster_
 
 **-src** or **--sources** _initial sources of infection raster map_
 

@@ -36,12 +36,12 @@ sourceCpp("./scripts/myCppFunctions.cpp") #for C++ custom functions
 ###Input simulation parameters: #####
 option_list = list(
   make_option(c("-u","--umca"), action="store", default=NA, type='character', help="input bay laurel (UMCA) raster map"),
-  make_option(c("-u","--lide"), action="store", default=NA, type='character', help="input bay laurel (LIDE) raster map"),
-  make_option(c("-u","--acma"), action="store", default=NA, type='character', help="input bay laurel (ACMA) raster map"),
-  make_option(c("-u","--arme"), action="store", default=NA, type='character', help="input bay laurel (ARME) raster map"),
-  make_option(c("-u","--aeca"), action="store", default=NA, type='character', help="input bay laurel (AECA) raster map"),
-  make_option(c("-u","--psme"), action="store", default=NA, type='character', help="input bay laurel (PSME) raster map"),
-  make_option(c("-u","--sese"), action="store", default=NA, type='character', help="input bay laurel (SESE) raster map"),
+  make_option(c("-ld","--lide"), action="store", default=NA, type='character', help="input Tanoak (LIDE) raster map"),
+  make_option(c("-ac","--acma"), action="store", default=NA, type='character', help="input Bigleaf Maple (ACMA) raster map"),
+  make_option(c("-ar","--arme"), action="store", default=NA, type='character', help="input Madrone (ARME) raster map"),
+  make_option(c("-ae","--aeca"), action="store", default=NA, type='character', help="input California Buckeye (AECA) raster map"),
+  make_option(c("-psm","--psme"), action="store", default=NA, type='character', help="input Douglas fir (PSME) raster map"),
+  make_option(c("-se","--sese"), action="store", default=NA, type='character', help="input Redwood (SESE) raster map"),
   make_option(c("-ok","--oaks"), action="store", default=NA, type='character', help="input SOD-oaks raster map"),  
   make_option(c("-lvt","--livetree"), action="store", default=NA, type='character', help="input live tree (all) raster map"),
   make_option(c("-src","--sources"), action="store", default=NA, type='character', help="initial sources of infection raster map"),
