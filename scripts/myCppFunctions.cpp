@@ -401,8 +401,10 @@ List SporeDispCpp_MH(IntegerMatrix x,
                S_AR(row0, col0) > 0 || S_AE(row0, col0) > 0 || S_PS(row0, col0) > 0 || S_SE(row0, col0) > 0){
               
               //WHAT IS THE PROBABILITY THAT A SPORE HITS ANY SUSCEPTIBLE HOST?
-              PropS = double(S_UM(row0, col0) + S_OK(row0, col0) + S_LD(row0, col0) + S_AC(row0, col0) + 
-                             S_AR(row0, col0) + S_AE(row0, col0) + S_PS(row0, col0) + S_SE(row0, col0) ) / N_LVE(row0, col0);
+              int S_TOTAL = S_UM(row0, col0) + S_OK(row0, col0) + S_LD(row0, col0) + S_AC(row0, col0) + 
+                            S_AR(row0, col0) + S_AE(row0, col0) + S_PS(row0, col0) + S_SE(row0, col0);
+              
+              PropS = double (S_TOTAL / N_LVE(row0, col0));
                 
               double U = R::runif(0,1);			  
                 
@@ -410,14 +412,14 @@ List SporeDispCpp_MH(IntegerMatrix x,
               if (U < PropS){
                 
                 //WHICH SUSCEPTIBLE TREE GETS HIT? CALCULATE PROBABILITY WEIGHTS
-                double Prob_UM = double (S_UM(row0, col0)) / N_LVE(row0, col0); 
-                double Prob_LD = double (S_LD(row0, col0)) / N_LVE(row0, col0);
-                double Prob_AC = double (S_AC(row0, col0)) / N_LVE(row0, col0);
-                double Prob_AR = double (S_AR(row0, col0)) / N_LVE(row0, col0);
-                double Prob_AE = double (S_AE(row0, col0)) / N_LVE(row0, col0);
-                double Prob_PS = double (S_PS(row0, col0)) / N_LVE(row0, col0);
-                double Prob_SE = double (S_SE(row0, col0)) / N_LVE(row0, col0);
-                double Prob_OK = double (S_OK(row0, col0)) / N_LVE(row0, col0);
+                double Prob_UM = double (S_UM(row0, col0)) / S_TOTAL; 
+                double Prob_LD = double (S_LD(row0, col0)) / S_TOTAL;
+                double Prob_AC = double (S_AC(row0, col0)) / S_TOTAL;
+                double Prob_AR = double (S_AR(row0, col0)) / S_TOTAL;
+                double Prob_AE = double (S_AE(row0, col0)) / S_TOTAL;
+                double Prob_PS = double (S_PS(row0, col0)) / S_TOTAL;
+                double Prob_SE = double (S_SE(row0, col0)) / S_TOTAL;
+                double Prob_OK = double (S_OK(row0, col0)) / S_TOTAL;
                 
                 //sample which of the three hosts will be hit given probability weights
                 IntegerVector sv = sample(seq_len(8), 1, false, 
@@ -493,8 +495,8 @@ List SporeDispCpp_MH(IntegerMatrix x,
               if (U < PropS){
                 
                 //WHICH SUSCEPTIBLE TREE GETS HIT? CALCULATE PROBABILITY WEIGHTS
-                double Prob_UM = double (S_UM(row0, col0)) / N_LVE(row0, col0); 
-                double Prob_LD = double (S_LD(row0, col0)) / N_LVE(row0, col0);
+                double Prob_UM = double (S_UM(row0, col0)) / (S_UM(row0, col0) + S_LD(row0, col0)); 
+                double Prob_LD = double (S_LD(row0, col0)) / (S_UM(row0, col0) + S_LD(row0, col0));
 
                 //sample which of the three hosts will be hit given probability weights
                 IntegerVector sv = sample(seq_len(2), 1, false, 
@@ -641,8 +643,10 @@ List SporeDispCppWind_MH(IntegerMatrix x,
                S_AR(row0, col0) > 0 || S_AE(row0, col0) > 0 || S_PS(row0, col0) > 0 || S_SE(row0, col0) > 0){
                 
               //WHAT IS THE PROBABILITY THAT A SPORE HITS ANY SUSCEPTIBLE HOST?
-              PropS = double(S_UM(row0, col0) + S_OK(row0, col0) + S_LD(row0, col0) + S_AC(row0, col0) + 
-                             S_AR(row0, col0) + S_AE(row0, col0) + S_PS(row0, col0) + S_SE(row0, col0) ) / N_LVE(row0, col0);
+              int S_TOTAL = S_UM(row0, col0) + S_OK(row0, col0) + S_LD(row0, col0) + S_AC(row0, col0) + 
+                            S_AR(row0, col0) + S_AE(row0, col0) + S_PS(row0, col0) + S_SE(row0, col0);
+              
+              PropS = double (S_TOTAL / N_LVE(row0, col0));
                 
               double U = R::runif(0,1);			  
                 
@@ -650,14 +654,14 @@ List SporeDispCppWind_MH(IntegerMatrix x,
               if (U < PropS){
                   
                 //WHICH SUSCEPTIBLE TREE GETS HIT? CALCULATE PROBABILITY WEIGHTS
-                double Prob_UM = double (S_UM(row0, col0)) / N_LVE(row0, col0); 
-                double Prob_LD = double (S_LD(row0, col0)) / N_LVE(row0, col0);
-                double Prob_AC = double (S_AC(row0, col0)) / N_LVE(row0, col0);
-                double Prob_AR = double (S_AR(row0, col0)) / N_LVE(row0, col0);
-                double Prob_AE = double (S_AE(row0, col0)) / N_LVE(row0, col0);
-                double Prob_PS = double (S_PS(row0, col0)) / N_LVE(row0, col0);
-                double Prob_SE = double (S_SE(row0, col0)) / N_LVE(row0, col0);
-                double Prob_OK = double (S_OK(row0, col0)) / N_LVE(row0, col0);
+                double Prob_UM = double (S_UM(row0, col0)) / S_TOTAL; 
+                double Prob_LD = double (S_LD(row0, col0)) / S_TOTAL;
+                double Prob_AC = double (S_AC(row0, col0)) / S_TOTAL;
+                double Prob_AR = double (S_AR(row0, col0)) / S_TOTAL;
+                double Prob_AE = double (S_AE(row0, col0)) / S_TOTAL;
+                double Prob_PS = double (S_PS(row0, col0)) / S_TOTAL;
+                double Prob_SE = double (S_SE(row0, col0)) / S_TOTAL;
+                double Prob_OK = double (S_OK(row0, col0)) / S_TOTAL;
                   
                 //sample which of the three hosts will be hit given probability weights
                 IntegerVector sv = sample(seq_len(8), 1, false, 
@@ -731,8 +735,8 @@ List SporeDispCppWind_MH(IntegerMatrix x,
               if (U < PropS){
                 
                 //WHICH SUSCEPTIBLE TREE GETS HIT? CALCULATE PROBABILITY WEIGHTS
-                double Prob_UM = double (S_UM(row0, col0)) / N_LVE(row0, col0); 
-                double Prob_LD = double (S_LD(row0, col0)) / N_LVE(row0, col0);
+                double Prob_UM = double (S_UM(row0, col0)) / (S_UM(row0, col0) + S_LD(row0, col0)); 
+                double Prob_LD = double (S_LD(row0, col0)) / (S_UM(row0, col0) + S_LD(row0, col0));
                 
                 //sample which of the three hosts will be hit given probability weights
                 IntegerVector sv = sample(seq_len(2), 1, false, 
