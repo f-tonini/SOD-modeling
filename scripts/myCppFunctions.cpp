@@ -404,7 +404,7 @@ List SporeDispCpp_MH(IntegerMatrix x,
               int S_TOTAL = S_UM(row0, col0) + S_OK(row0, col0) + S_LD(row0, col0) + S_AC(row0, col0) + 
                             S_AR(row0, col0) + S_AE(row0, col0) + S_PS(row0, col0) + S_SE(row0, col0);
               
-              PropS = double (S_TOTAL / N_LVE(row0, col0));
+              PropS = double (S_TOTAL) / N_LVE(row0, col0);
                 
               double U = R::runif(0,1);			  
                 
@@ -646,7 +646,7 @@ List SporeDispCppWind_MH(IntegerMatrix x,
               int S_TOTAL = S_UM(row0, col0) + S_OK(row0, col0) + S_LD(row0, col0) + S_AC(row0, col0) + 
                             S_AR(row0, col0) + S_AE(row0, col0) + S_PS(row0, col0) + S_SE(row0, col0);
               
-              PropS = double (S_TOTAL / N_LVE(row0, col0));
+              PropS = double (S_TOTAL) / N_LVE(row0, col0);
                 
               double U = R::runif(0,1);			  
                 
