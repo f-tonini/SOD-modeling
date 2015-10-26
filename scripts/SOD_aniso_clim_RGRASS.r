@@ -21,6 +21,7 @@ suppressPackageStartupMessages(library(Rcpp))      #Seamless R and C++ Integrati
 suppressPackageStartupMessages(library(rgrass7))   #Interface Between GRASS 7 GIS and R. Depends R (≥ 2.12)
 suppressPackageStartupMessages(library(optparse))  #Parse args from command line
 suppressPackageStartupMessages(library(plotrix))   #Add text annotations to plot
+suppressPackageStartupMessages(library(ncdf))   #work with NetCDF datasets
 
 ##Define the main working directory based on the current script path
 initial_options <- commandArgs(trailingOnly = FALSE)
@@ -206,8 +207,8 @@ windows(width = 10, height = 10, xpos = 350, ypos = 50, buffered = FALSE)
 plot(bkr_img, xaxs = "i", yaxs = "i")
 
 #plot coordinates for plotting text:
-xpos <- (bbox(I_umca_rast)[1,2] + bbox(I_umca_rast)[1,1]) / 2
-ypos <- bbox(I_umca_rast)[2,2] - 150
+xpos <- (bbox(umca_rast)[1,2] + bbox(umca_rast)[1,1]) / 2
+ypos <- bbox(umca_rast)[2,2] - 150
 
 #time counter to access pos index in weather raster stacks
 cnt <- 0 
@@ -266,6 +267,7 @@ for (tt in tstep){
         I_oaks_rast_sp <- as(I_oaks_rast, 'SpatialGridDataFrame')
         writeRAST(I_oaks_rast_sp, vname=paste(opt$output, '_', sprintf(formatting_str, cnt), sep=''), overwrite=TRUE) #write to GRASS raster file
         execGRASS('r.timestamp', map=paste(opt$output, '_', sprintf(formatting_str, cnt), sep=''), date=paste(split_date[3], months_names[as.numeric(split_date[2])], split_date[1]))
+        I_umca_rast <- I_oaks_rast
         I_umca_rast[] <- I_umca
         I_umca_rast[] <- ifelse(I_umca_rast[] == 0, NA, I_umca_rast[])
         I_umca_rast_sp <- as(I_umca_rast, 'SpatialGridDataFrame')
@@ -282,19 +284,18 @@ for (tt in tstep){
     #integer matrix
     set.seed(42)
     spores_mat <- SporeGenCpp_MH(I_umca, I_lide, I_acma, I_arme, I_aeca, 
-                                 I_psme, I_sese, wLst, W, rate = spore_rate) #rate: spores/week for each infected host (4.4 default)
+                                 I_psme, I_sese, wLst, W, rate = opt$spore_rate) #rate: spores/week for each infected host (4.4 default)
     
     #SPORE DISPERSAL:  
     #'List'
-    set.seed(42)
-    if (wind == 'YES') {
+    if (opt$wind == 'YES') {
       
       #Check if predominant wind direction has been specified correctly:
-      if (!(pwdir %in% c('N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'))) stop('A predominant wind direction must be specified: N, NE, E, SE, S, SW, W, NW')
+      if (!(opt$pwdir %in% c('N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'))) stop('A predominant wind direction must be specified: N, NE, E, SE, S, SW, W, NW')
       out <- SporeDispCppWind_MH(spores_mat, S_UM=S_umca, S_LD=S_lide, S_AC=S_acma, S_AR=S_arme, S_AE=S_aeca, 
                                  S_PS=S_psme, S_SE=S_sese, S_OK=S_oaks, I_UM=I_umca, I_LD=I_lide, I_AC=I_acma, 
                                  I_AR=I_arme, I_AE=I_aeca, I_PS=I_psme, I_SE=I_sese, I_OK=I_oaks, N_LVE=N_live, 
-                                 W, rs=res_win, rtype='Cauchy', scale1=20.57, wdir=pwdir, kappa=2)
+                                 W, rs=res_win, rtype='Cauchy', scale1=20.57, wdir=opt$pwdir, kappa=2)
       
     }else{
       out <- SporeDispCpp_MH(spores_mat, S_UM=S_umca, S_LD=S_lide, S_AC=S_acma, S_AR=S_arme, S_AE=S_aeca, 
