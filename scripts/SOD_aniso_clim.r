@@ -80,8 +80,8 @@ formatting_str = paste("%0", floor( log10( length(tstep) ) ) + 1, "d", sep='')
 ##WEATHER SUITABILITY: read and stack weather suitability raster BEFORE running the simulation
 
 #weather coefficients
-mcf.array <- get.var.ncdf(open.ncdf(paste('./layers/weather/weatherCoeff_', start, '_', end, '.nc', sep='')),  varid = "Mcoef") #M = moisture;
-ccf.array <- get.var.ncdf(open.ncdf(paste('./layers/weather/weatherCoeff_', start, '_', end, '.nc', sep='')),  varid = "Ccoef") #C = temperature;
+mcf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2014.nc'),  varid = "Mcoef") #M = moisture;
+ccf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2014.nc'),  varid = "Ccoef") #C = temperature;
 
 ##Seasonality: Do you want the spread to be limited to certain months?
 ss <- 'YES'   #'YES' or 'NO'
