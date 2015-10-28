@@ -63,36 +63,39 @@ opt = parse_args(OptionParser(option_list=option_list))
 ##Input rasters: abundance (tree density per hectare)
 #----> UMCA
 umca_rast <- readRAST(opt$umca)
-umca_rast <- round(raster(umca_rast))  #transform 'sp' obj to 'raster' obj
+umca_rast <- raster(umca_rast)  #transform 'sp' obj to 'raster' obj
 #----> ALL SOD-affected oaks
 oaks_rast <- readRAST(opt$oaks)
-oaks_rast <- round(raster(oaks_rast))
+oaks_rast <- raster(oaks_rast)
 #max
 mx <- cellStats(oaks_rast, stat='max') 
 #----> All live trees
 lvtree_rast <- readRAST(opt$livetree)
-lvtree_rast <- round(raster(lvtree_rast))
+lvtree_rast <- raster(lvtree_rast)
 
 #raster resolution
 res_win <- res(umca_rast)[1]
+
+###################################
+### INFECTED AND SUSCEPTIBLES ####
 
 ##Initial infection (OAKS):
 I_oaks_rast <- readRAST(opt$sources) 
 I_oaks_rast <- raster(I_oaks_rast) 
 
-##Initial sources of infection (UMCA): assumed
-I_umca_rast <- I_oaks_rast * 2
-
-#Susceptibles OAKS = Current Abundance - Infected 
-S_oaks_rast <- oaks_rast - I_oaks_rast
-#Susceptibles UMCA = Current Abundance - Infected 
-S_umca_rast <- umca_rast - I_umca_rast
-
-#integer matrix with susceptible and infected
-S_umca <- as.matrix(S_umca_rast)
-I_umca <- as.matrix(I_umca_rast)
-S_oaks <- as.matrix(S_oaks_rast)
+#define matrices for infected and susceptible species of interest
 I_oaks <- as.matrix(I_oaks_rast)
+S_oaks <- as.matrix(oaks_rast - I_oaks_rast)
+I_umca <- matrix(0, nrow=res_win, ncol=res_win)
+S_umca <- as.matrix(umca_rast)
+
+##Initialize infected trees for each species (!!NEEDED UNLESS EMPIRICAL INFO IS AVAILABLE!!)
+if(any(S_umca[I_oaks > 0] > 0)) I_umca[I_oaks > 0] <- mapply(function(x,y) ifelse(x > y, min(c(x,y*2)), x), 
+                                                             S_umca[I_oaks > 0], I_oaks[I_oaks > 0]) 
+##update susceptible matrices by subtracting the initialized infections 
+S_umca <- S_umca - I_umca
+
+##define matrix for immune live trees
 N_live <- as.matrix(lvtree_rast)
 
 ##background satellite image for plotting
@@ -136,8 +139,8 @@ windows(width = 10, height = 10, xpos = 350, ypos = 50, buffered = FALSE)
 plot(bkr_img, xaxs = "i", yaxs = "i")
 
 #plot coordinates for plotting text:
-xpos <- (bbox(I_umca_rast)[1,2] + bbox(I_umca_rast)[1,1]) / 2
-ypos <- bbox(I_umca_rast)[2,2] - 150
+xpos <- (bbox(umca_rast)[1,2] + bbox(umca_rast)[1,1]) / 2
+ypos <- bbox(umca_rast)[2,2] - 150
 
 #time counter to access pos index in weather raster stacks
 cnt <- 0 
@@ -196,6 +199,7 @@ for (tt in tstep){
         I_oaks_rast_sp <- as(I_oaks_rast, 'SpatialGridDataFrame')
         writeRAST(I_oaks_rast_sp, vname=paste(opt$output, '_', sprintf(formatting_str, cnt), sep=''), overwrite=TRUE) #write to GRASS raster file
         execGRASS('r.timestamp', map=paste(opt$output, '_', sprintf(formatting_str, cnt), sep=''), date=paste(split_date[3], months_names[as.numeric(split_date[2])], split_date[1]))
+        I_umca_rast <- I_oaks_rast
         I_umca_rast[] <- I_umca
         I_umca_rast[] <- ifelse(I_umca_rast[] == 0, NA, I_umca_rast[])
         I_umca_rast_sp <- as(I_umca_rast, 'SpatialGridDataFrame')
