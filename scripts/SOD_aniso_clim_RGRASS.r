@@ -21,6 +21,7 @@ suppressPackageStartupMessages(library(Rcpp))      #Seamless R and C++ Integrati
 suppressPackageStartupMessages(library(rgrass7))   #Interface Between GRASS 7 GIS and R. Depends R (≥ 2.12)
 suppressPackageStartupMessages(library(optparse))  #Parse args from command line
 suppressPackageStartupMessages(library(plotrix))   #Add text annotations to plot
+suppressPackageStartupMessages(library(ncdf))   #work with NetCDF datasets
 
 ##Define the main working directory based on the current script path
 initial_options <- commandArgs(trailingOnly = FALSE)
