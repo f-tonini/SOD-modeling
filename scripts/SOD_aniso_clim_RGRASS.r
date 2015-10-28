@@ -140,7 +140,7 @@ I_sese <- matrix(0, nrow=res_win, ncol=res_win)
 S_sese <- as.matrix(sese_rast)
 
 ##Initialize infected trees for each species (!!NEEDED UNLESS EMPIRICAL INFO IS AVAILABLE!!)
-if(any(S_umca[I_oaks > 0] > 0)) I_umca[I_oaks > 0] <- mapply(function(x,y) ifelse(x > y, min(c(x,y*3)), x), 
+if(any(S_umca[I_oaks > 0] > 0)) I_umca[I_oaks > 0] <- mapply(function(x,y) ifelse(x > y, min(c(x,y*2)), x), 
                                                              S_umca[I_oaks > 0], I_oaks[I_oaks > 0]) 
 if(any(S_lide[I_oaks > 0] > 0)) I_lide[I_oaks > 0] <- mapply(function(x,y) ifelse(x > y, min(c(x,y*2)), x), 
                                                              S_lide[I_oaks > 0], I_oaks[I_oaks > 0])
