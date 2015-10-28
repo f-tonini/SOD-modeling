@@ -128,7 +128,7 @@ bkr_img <- raster("./layers/ortho_5m_color.tif")
 
 ##Start-End date: 
 start <- 2000
-end <- 2014
+end <- 2010
 
 if (start > end) stop('start date must precede end date!!')
 
@@ -222,7 +222,6 @@ for (tt in tstep){
     
     #SPORE DISPERSAL:  
     #'List'
-    set.seed(42)
     if (wind == 'YES') {
       
       #Check if predominant wind direction has been specified correctly:
