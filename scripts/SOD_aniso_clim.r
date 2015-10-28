@@ -29,37 +29,35 @@ sourceCpp("./scripts/myCppFunctions.cpp") #for C++ custom functions
 ##Input rasters: abundance (tree density per hectare)
 #----> UMCA
 umca_rast <- raster("./layers/UMCA_den_100m.img")
-umca_rast <- round(umca_rast)  #transform 'sp' obj to 'raster' obj
 #----> ALL SOD-affected oaks
 oaks_rast <- raster("./layers/OAKS_den_100m.img")
-oaks_rast <- round(oaks_rast)
 #max
 mx <- cellStats(oaks_rast, stat='max') 
 #----> All live trees
 lvtree_rast <- raster("./layers/TPH_den_100m.img")
-lvtree_rast <- round(lvtree_rast)
-#calculate trees that are SOD-immune:
-IMM_rast <- lvtree_rast - (umca_rast + oaks_rast) 
 
 #raster resolution
 res_win <- res(umca_rast)[1]
 
+###################################
+### INFECTED AND SUSCEPTIBLES ####
+
 ##Initial infection (OAKS):
 I_oaks_rast <- raster("./layers/init_2000_cnt.img") 
 
-##Initial sources of infection (UMCA): assumed
-I_umca_rast <- I_oaks_rast * 2
-
-#Susceptibles OAKS = Current Abundance - Infected 
-S_oaks_rast <- oaks_rast - I_oaks_rast
-#Susceptibles UMCA = Current Abundance - Infected 
-S_umca_rast <- umca_rast - I_umca_rast
-
-#integer matrix with susceptible and infected
-S_umca <- as.matrix(S_umca_rast)
-I_umca <- as.matrix(I_umca_rast)
-S_oaks <- as.matrix(S_oaks_rast)
+#define matrices for infected and susceptible species of interest
 I_oaks <- as.matrix(I_oaks_rast)
+S_oaks <- as.matrix(oaks_rast - I_oaks_rast)
+I_umca <- matrix(0, nrow=res_win, ncol=res_win)
+S_umca <- as.matrix(umca_rast)
+
+##Initialize infected trees for each species (!!NEEDED UNLESS EMPIRICAL INFO IS AVAILABLE!!)
+if(any(S_umca[I_oaks > 0] > 0)) I_umca[I_oaks > 0] <- mapply(function(x,y) ifelse(x > y, min(c(x,y*2)), x), 
+                                                             S_umca[I_oaks > 0], I_oaks[I_oaks > 0]) 
+##update susceptible matrices by subtracting the initialized infections 
+S_umca <- S_umca - I_umca 
+
+##define matrix for immune live trees
 N_live <- as.matrix(lvtree_rast)
 
 ##background satellite image for plotting
@@ -67,7 +65,7 @@ bkr_img <- raster("./layers/ortho_5m_color.tif")
 
 ##Start-End date: 
 start <- 2000
-end <- 2014
+end <- 2010
 
 if (start > end) stop('start date must precede end date!!')
 
@@ -99,8 +97,8 @@ nth_output <- 4
 plot(bkr_img, xaxs = "i", yaxs = "i")
 
 #plot coordinates for plotting text:
-xpos <- (bbox(I_umca_rast)[1,2] + bbox(I_umca_rast)[1,1]) / 2
-ypos <- bbox(I_umca_rast)[2,2] - 150
+xpos <- (bbox(umca_rast)[1,2] + bbox(umca_rast)[1,1]) / 2
+ypos <- bbox(umca_rast)[2,2] - 150
 
 #time counter to access pos index in weather raster stacks
 cnt <- 0 
@@ -161,7 +159,6 @@ for (tt in tstep){
     
     #SPORE DISPERSAL:  
     #'List'
-    set.seed(42)
     if (wind == 'YES') {
       
       #Check if predominant wind direction has been specified correctly:
