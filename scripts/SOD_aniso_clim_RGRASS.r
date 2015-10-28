@@ -91,6 +91,7 @@ S_umca_rast <- umca_rast - I_umca_rast
 
 #integer matrix with susceptible and infected
 S_umca <- as.matrix(S_umca_rast)
+S_umca[S_umca < 0] = 0
 I_umca <- as.matrix(I_umca_rast)
 S_oaks <- as.matrix(S_oaks_rast)
 I_oaks <- as.matrix(I_oaks_rast)
