@@ -9,6 +9,9 @@
 # Software:     Tested successfully using R version 3.1.3 (http://www.r-project.org/)
 #-----------------------------------------------------------------------------------------------------------------------
 
+#install packages
+#install.packages(c("rgdal","raster","lubridate","CircStats","Rcpp", "rgrass7", "optparse", "plotrix", "ncdf4"))
+
 #load packages:
 suppressPackageStartupMessages(library(raster))    #Raster operation and I/O. Depends R (≥ 2.15.0)
 suppressPackageStartupMessages(library(rgdal))     #Geospatial data abstraction library. Depends R (≥ 2.14.0)
@@ -16,7 +19,7 @@ suppressPackageStartupMessages(library(lubridate)) #Make dealing with dates a li
 suppressPackageStartupMessages(library(CircStats)) #Circular Statistics - Von Mises distribution
 suppressPackageStartupMessages(library(Rcpp))      #Seamless R and C++ Integration. Depends R (≥ 3.0.0)
 suppressPackageStartupMessages(library(plotrix))   #Add text annotations to plot
-suppressPackageStartupMessages(library(ncdf))   #work with NetCDF datasets
+suppressPackageStartupMessages(library(ncdf4))   #work with NetCDF datasets
 
 ##Define the main working directory based on the current script path
 setwd("D:\\SOD-modeling")
@@ -142,8 +145,8 @@ formatting_str = paste("%0", floor( log10( length(tstep) ) ) + 1, "d", sep='')
 
 ##WEATHER SUITABILITY: read and stack weather suitability raster BEFORE running the simulation
 #weather coefficients
-mcf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2014.nc'),  varid = "Mcoef") #M = moisture;
-ccf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2014.nc'),  varid = "Ccoef") #C = temperature;
+mcf.array <- ncvar_get(nc_open('./layers/weather/weatherCoeff_2000_2014.nc'),  varid = "Mcoef") #M = moisture;
+ccf.array <- ncvar_get(nc_open('./layers/weather/weatherCoeff_2000_2014.nc'),  varid = "Ccoef") #C = temperature;
 
 ##Seasonality: Do you want the spread to be limited to certain months?
 ss <- 'YES'   #'YES' or 'NO'
