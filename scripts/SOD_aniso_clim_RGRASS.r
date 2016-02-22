@@ -10,7 +10,7 @@
 #-----------------------------------------------------------------------------------------------------------------------
 
 #install packages
-#install.packages(c("rgdal","raster","lubridate","CircStats","Rcpp", "rgrass7", "optparse", "plotrix"))
+#install.packages(c("rgdal","raster","lubridate","CircStats","Rcpp", "rgrass7", "optparse", "plotrix", "ncdf4"))
 
 #load packages:
 suppressPackageStartupMessages(library(raster))    #Raster operation and I/O. Depends R (≥ 2.15.0)
@@ -21,7 +21,7 @@ suppressPackageStartupMessages(library(Rcpp))      #Seamless R and C++ Integrati
 suppressPackageStartupMessages(library(rgrass7))   #Interface Between GRASS 7 GIS and R. Depends R (≥ 2.12)
 suppressPackageStartupMessages(library(optparse))  #Parse args from command line
 suppressPackageStartupMessages(library(plotrix))   #Add text annotations to plot
-suppressPackageStartupMessages(library(ncdf))   #work with NetCDF datasets
+suppressPackageStartupMessages(library(ncdf4))   #work with NetCDF datasets
 
 ##Define the main working directory based on the current script path
 initial_options <- commandArgs(trailingOnly = FALSE)
@@ -121,8 +121,8 @@ months_names = c('jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 
 ##WEATHER SUITABILITY: read and stack weather suitability raster BEFORE running the simulation
 
 #weather coefficients
-mcf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2014.nc'),  varid = "Mcoef") #M = moisture;
-ccf.array <- get.var.ncdf(open.ncdf('./layers/weather/weatherCoeff_2000_2014.nc'),  varid = "Ccoef") #C = temperature;
+mcf.array <- ncvar_get(nc_open('./layers/weather/weatherCoeff_2000_2014.nc'),  varid = "Mcoef") #M = moisture;
+ccf.array <- ncvar_get(nc_open('./layers/weather/weatherCoeff_2000_2014.nc'),  varid = "Ccoef") #C = temperature;
 
 ##Seasonality: Do you want the spread to be limited to certain months?
 ss <- opt$seasonal   #'YES' or 'NO'
