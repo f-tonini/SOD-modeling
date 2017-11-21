@@ -65,8 +65,11 @@ Each parameter in the argument list is specified using either the *-shortflag* o
 ## Contacts
 
 Francesco Tonini: <ftonini84@gmail.com>
+
 Devon Gaydos: <dagaydos@ncsu.edu>
+
 Anna Petrasova <akratoc@ncsu.edu>
+
 Vaclav Petras: <vpetras@ncsu.edu>
 
 ## License
