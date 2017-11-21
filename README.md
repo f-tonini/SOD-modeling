@@ -61,3 +61,14 @@ Each parameter in the argument list is specified using either the *-shortflag* o
 **-n** or **--nth_output** _output every nth map_
 
 **-scn** or **--scenario** _future weather scenario_
+
+## Contacts
+
+Francesco Tonini: <ftonini84@gmail.com>
+Devon Gaydos: <dagaydos@ncsu.edu>
+Anna Petrasova <akratoc@ncsu.edu>
+Vaclav Petras: <vpetras@ncsu.edu>
+
+## License
+
+[Apache 2.0](LICENSE)
