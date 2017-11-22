@@ -1,7 +1,7 @@
 # SOD-modeling
 This repository contains the scripts used to develop a stochastic landscape spread model of forest pathogen *P. ramorum*, causal agent of the emerging infectious disease sudden oak death (SOD). This project is adjusted from the published research article:
 
-Ross K. Meentemeyer, Nik J. Cunniffe, Alex R. Cook, Joao A. N. Filipe, Richard D. Hunter, David M. Rizzo, and Christopher A. Gilligan 2011. Epidemiological modeling of invasion in heterogeneous landscapes: spread of sudden oak death in California (1990–2030). *Ecosphere* 2:art17. [http://dx.doi.org/10.1890/ES10-00192.1] (http://www.esajournals.org/doi/abs/10.1890/ES10-00192.1) 
+Ross K. Meentemeyer, Nik J. Cunniffe, Alex R. Cook, Joao A. N. Filipe, Richard D. Hunter, David M. Rizzo, and Christopher A. Gilligan 2011. [Epidemiological modeling of invasion in heterogeneous landscapes: spread of sudden oak death in California (1990–2030)](http://www.esajournals.org/doi/abs/10.1890/ES10-00192.1). *Ecosphere* 2:art17. DOI: http://dx.doi.org/10.1890/ES10-00192.1
 
 ### *layers*
 This folder contains all the GIS layers necessary to test run our code. Subfolder **_weather_** contains weekly **m** (=moisture) and **c** (=mean temperature) raster files. These are called by the main R script during execution.
