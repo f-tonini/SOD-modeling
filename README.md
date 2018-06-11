@@ -17,7 +17,7 @@ As of now, the main R script is meant to be run from within [**GRASS GIS 7.0.0**
 
 Before running the code make sure to follow these steps:
 
-1. Install R (our code was tested with version 3.0.2) from [here] (http://www.r-project.org/)
+1. Install R (our code was tested with version 3.0.2) from [here](http://www.r-project.org/)
 
 2. Open R and install the required packages using the statement:
 **install.packages(c("rgdal","raster","lubridate","CircStats","Rcpp","rgrass7", "optparse", "plotrix")**
